@@ -1,0 +1,34 @@
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS alerts;
+DROP TABLE IF EXISTS measurements;
+DROP TABLE IF EXISTS glaciers;
+
+-- Table: glaciers
+CREATE TABLE glaciers (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    location geometry(Point, 4326) NOT NULL,
+    region TEXT,
+    country TEXT
+);
+
+-- Spatial index on glaciers.location
+CREATE INDEX glaciers_location_gix ON glaciers USING GIST (location);
+
+-- Table: measurements
+CREATE TABLE measurements (
+    id SERIAL PRIMARY KEY,
+    glacier_id INTEGER NOT NULL REFERENCES glaciers(id) ON DELETE CASCADE,
+    date TIMESTAMP WITHOUT TIME ZONE,
+    ice_volume DOUBLE PRECISION,
+    surface_area DOUBLE PRECISION,
+    melt_rate DOUBLE PRECISION
+);
+
+-- Table: alerts
+CREATE TABLE alerts (
+    id SERIAL PRIMARY KEY,
+    glacier_id INTEGER NOT NULL REFERENCES glaciers(id) ON DELETE CASCADE,
+    alert_type TEXT,
+    alert_message TEXT,
+    created_at TIMESTAMP DEFAULT now()
