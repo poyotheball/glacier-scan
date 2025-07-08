@@ -1,53 +1,78 @@
 "use client"
 
 import Link from "next/link"
-import { useTranslation } from "next-i18next"
-import { useAuth } from "@/components/auth/AuthProvider"
+import { useRouter } from "next/router"
+import { Button } from "@/components/ui/button"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu"
+import { Mountain, BarChart3, Map, Upload, Settings, Bell } from "lucide-react"
 
-const Header = () => {
-  const { t } = useTranslation("common")
-  const { user, signOut } = useAuth()
+export default function Header() {
+  const router = useRouter()
+
+  const navigation = [
+    { name: "Home", href: "/", icon: Mountain },
+    { name: "Upload", href: "/upload", icon: Upload },
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
+    { name: "Map", href: "/map", icon: Map },
+    { name: "Trends", href: "/trends", icon: BarChart3 },
+  ]
 
   return (
-    <header className="bg-blue-600 text-white shadow-lg">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold">
-            {t("title")}
-          </Link>
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="hover:text-blue-200">
-              {t("navigation.home")}
+    <header className="bg-white border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center space-x-2">
+              <Mountain className="h-8 w-8 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900">GlacierScan</span>
             </Link>
-            <Link href="/map" className="hover:text-blue-200">
-              {t("navigation.map")}
-            </Link>
-            <Link href="/upload" className="hover:text-blue-200">
-              {t("navigation.upload")}
-            </Link>
-            <Link href="/dashboard" className="hover:text-blue-200">
-              {t("navigation.dashboard")}
-            </Link>
-            <Link href="/trends" className="hover:text-blue-200">
-              Trends
-            </Link>
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm">Welcome, {user.email}</span>
-                <button onClick={() => signOut()} className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm">
-                  Sign Out
-                </button>
-              </div>
-            ) : (
-              <Link href="/auth" className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm">
-                Sign In
-              </Link>
-            )}
-          </nav>
+          </div>
+
+          {/* Navigation */}
+          <NavigationMenu>
+            <NavigationMenuList>
+              {navigation.map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavigationMenuItem key={item.name}>
+                    <Link href={item.href} legacyBehavior passHref>
+                      <NavigationMenuLink
+                        className={`
+                          flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                          ${
+                            router.pathname === item.href
+                              ? "bg-blue-100 text-blue-700"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          }
+                        `}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.name}</span>
+                      </NavigationMenuLink>
+                    </Link>
+                  </NavigationMenuItem>
+                )
+              })}
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          {/* Right side actions */}
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm">
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </header>
   )
 }
-
-export default Header
