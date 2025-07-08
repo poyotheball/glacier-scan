@@ -1,83 +1,140 @@
 "use client"
 
-import type { GetStaticProps } from "next"
-import { useTranslation } from "next-i18next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { useAuth } from "@/components/auth/AuthProvider"
-import MetricsCard from "@/components/dashboard/MetricsCard"
-import AnalysisResults from "@/components/dashboard/AnalysisResults"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Mountain, TrendingDown, AlertTriangle, Database } from "lucide-react"
+import Link from "next/link"
 import AlertsPanel from "@/components/dashboard/AlertsPanel"
+import AnalysisResults from "@/components/dashboard/AnalysisResults"
+import MetricsCard from "@/components/dashboard/MetricsCard"
 
-export default function DashboardPage() {
-  const { t } = useTranslation("common")
-  const { user } = useAuth()
+interface DashboardStats {
+  totalGlaciers: number
+  activeAlerts: number
+  completedAnalyses: number
+  avgMeltRate: number
+}
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Authentication Required</h1>
-          <p className="text-gray-600">Please sign in to view the dashboard.</p>
-        </div>
-      </div>
-    )
+export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalGlaciers: 0,
+    activeAlerts: 0,
+    completedAnalyses: 0,
+    avgMeltRate: 0,
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      const [glaciersResponse, alertsResponse] = await Promise.all([fetch("/api/glaciers"), fetch("/api/alerts")])
+
+      if (glaciersResponse.ok && alertsResponse.ok) {
+        const glaciers = await glaciersResponse.json()
+        const alerts = await alertsResponse.json()
+
+        const completedAnalyses = glaciers.reduce(
+          (total: number, glacier: any) =>
+            total + glacier.glacier_images.filter((img: any) => img.analysis_status === "completed").length,
+          0,
+        )
+
+        const allMeasurements = glaciers.flatMap((glacier: any) => glacier.measurements)
+        const avgMeltRate =
+          allMeasurements.length > 0
+            ? allMeasurements.reduce((sum: number, m: any) => sum + Number.parseFloat(m.melt_rate), 0) /
+              allMeasurements.length
+            : 0
+
+        setStats({
+          totalGlaciers: glaciers.length,
+          activeAlerts: alerts.length,
+          completedAnalyses,
+          avgMeltRate: Math.round(avgMeltRate * 100) / 100,
+        })
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Glacier Analysis {t("navigation.dashboard")}</h1>
-        <p className="text-gray-600">Monitor glacier changes and analysis results in real-time</p>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <MetricsCard title="Total Glaciers Monitored" value="8" change="+2 this month" trend="up" />
-        <MetricsCard title="Analyses Completed" value="6" change="+6 this week" trend="up" />
-        <MetricsCard title="Critical Alerts" value="2" change="Urgent attention needed" trend="up" />
-        <MetricsCard title="Average Melt Rate" value="2.1 m/yr" change="+15% from last year" trend="up" />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Analysis Results - Takes up 2 columns */}
-        <div className="lg:col-span-2">
-          <AnalysisResults />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Glacier Analysis Dashboard</h1>
+          <p className="text-gray-600">Monitor glacier health and track environmental changes</p>
         </div>
 
-        {/* Alerts Panel - Takes up 1 column */}
-        <div>
-          <AlertsPanel />
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricsCard
+            title="Total Glaciers"
+            value={stats.totalGlaciers.toString()}
+            icon={<Mountain className="h-6 w-6" />}
+            loading={loading}
+          />
+          <MetricsCard
+            title="Active Alerts"
+            value={stats.activeAlerts.toString()}
+            icon={<AlertTriangle className="h-6 w-6" />}
+            loading={loading}
+            trend={stats.activeAlerts > 0 ? "up" : "stable"}
+          />
+          <MetricsCard
+            title="Completed Analyses"
+            value={stats.completedAnalyses.toString()}
+            icon={<Database className="h-6 w-6" />}
+            loading={loading}
+          />
+          <MetricsCard
+            title="Avg Melt Rate"
+            value={`${stats.avgMeltRate} m/yr`}
+            icon={<TrendingDown className="h-6 w-6" />}
+            loading={loading}
+            trend="up"
+          />
         </div>
-      </div>
 
-      {/* Summary Statistics */}
-      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Global Glacier Status Summary</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-red-600">2</div>
-            <div className="text-sm text-gray-600">Critical Status</div>
-            <div className="text-xs text-gray-500">Immediate action required</div>
+        {/* Quick Actions */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              <Link href="/upload">
+                <Button>Upload New Images</Button>
+              </Link>
+              <Link href="/map">
+                <Button variant="outline">View Glacier Map</Button>
+              </Link>
+              <Link href="/trends">
+                <Button variant="outline">View Trends</Button>
+              </Link>
+              <Button variant="outline" onClick={fetchDashboardData}>
+                Refresh Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-8">
+            <AlertsPanel />
           </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">3</div>
-            <div className="text-sm text-gray-600">Moderate Decline</div>
-            <div className="text-xs text-gray-500">Regular monitoring</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">1</div>
-            <div className="text-sm text-gray-600">Stable</div>
-            <div className="text-xs text-gray-500">Minimal changes detected</div>
+          <div className="space-y-8">
+            <AnalysisResults />
           </div>
         </div>
       </div>
     </div>
   )
 }
-
-export const getStaticProps: GetStaticProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? "en", ["common"])),
-  },
-})

@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next"
 import { generateObject } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
-import { supabase } from "@/lib/supabase"
+import { db } from "@/lib/database"
 
 const GlacierAnalysisSchema = z.object({
   glacierName: z.string().describe('Identified glacier name or "Unknown Glacier"'),
@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Update status to processing
-    await supabase.from("glacier_images").update({ analysis_status: "processing" }).eq("image_url", imageUrl)
+    await db.updateGlacierImageStatus(imageUrl, "processing")
 
     // Use AI to analyze the glacier image
     const { object: analysis } = await generateObject({
@@ -70,21 +70,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     // Save analysis results
-    const { error: updateError } = await supabase
-      .from("glacier_images")
-      .update({
-        analysis_status: "completed",
-        analysis_results: analysis,
-      })
-      .eq("image_url", imageUrl)
-
-    if (updateError) {
-      throw updateError
-    }
+    await db.updateGlacierImageStatus(imageUrl, "completed", analysis)
 
     // If glacier was identified and we have measurements, save them
     if (glacierId && analysis.changes) {
-      await supabase.from("measurements").insert({
+      await db.createMeasurement({
         glacier_id: glacierId,
         date: new Date().toISOString().split("T")[0],
         ice_volume: Math.abs(analysis.changes.iceVolumeChange),
@@ -98,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Analysis failed:", error)
 
     // Update status to failed
-    await supabase.from("glacier_images").update({ analysis_status: "failed" }).eq("image_url", imageUrl)
+    await db.updateGlacierImageStatus(imageUrl, "failed")
 
     res.status(500).json({ error: "Analysis failed" })
   }

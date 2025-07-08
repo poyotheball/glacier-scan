@@ -1,19 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next"
-import { supabase } from "@/lib/supabase"
+import { query } from "@/lib/database"
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Test database connection
-    const { data: glaciers, error } = await supabase.from("glaciers").select("id, name").limit(1)
-
-    if (error) {
-      throw error
-    }
+    const result = await query("SELECT id, name FROM glaciers LIMIT 1")
 
     res.status(200).json({
       status: "success",
       message: "Database connection successful",
-      sampleData: glaciers,
+      sampleData: result.rows,
       timestamp: new Date().toISOString(),
     })
   } catch (error) {

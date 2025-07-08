@@ -5,7 +5,7 @@ This guide will help you run the complete Glacier Scan platform on your local ma
 ## 🚀 Quick Start (5 minutes)
 
 ### 1. Prerequisites
-```bash
+\`\`\`bash
 # Required software
 - Node.js 18+ 
 - npm or yarn
