@@ -1,55 +1,48 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Eye,
-  Download,
-  Share2,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  RefreshCw,
-  BarChart3,
-  ImageIcon,
-} from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Eye, Calendar, MapPin, AlertTriangle, CheckCircle, Clock, XCircle, RefreshCw } from "lucide-react"
+import Link from "next/link"
 
-interface AnalysisResult {
+interface GlacierImage {
   id: string
-  glacier_id: string | null
+  glacier_id: string
+  glacier_name: string
+  region: string
+  country: string
   image_url: string
   upload_date: string
   analysis_status: "pending" | "processing" | "completed" | "failed"
-  analysis_results: any
-  glacier?: {
-    name: string
-    region: string
-    country: string
+  analysis_results?: {
+    health_score?: number
+    risk_level?: "low" | "medium" | "high" | "critical"
   }
 }
 
 export default function AnalysisResults() {
-  const [results, setResults] = useState<AnalysisResult[]>([])
+  const [images, setImages] = useState<GlacierImage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchResults()
+    fetchAnalysisResults()
   }, [])
 
-  const fetchResults = async () => {
+  const fetchAnalysisResults = async () => {
     try {
       setLoading(true)
       const response = await fetch("/api/glacier-images")
+
       if (!response.ok) {
-        throw new Error("Failed to fetch results")
+        throw new Error("Failed to fetch analysis results")
       }
+
       const data = await response.json()
-      setResults(data)
+      setImages(data.images || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
@@ -87,16 +80,32 @@ export default function AnalysisResults() {
     }
   }
 
+  const getRiskColor = (risk?: string) => {
+    switch (risk) {
+      case "low":
+        return "bg-green-100 text-green-800"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800"
+      case "high":
+        return "bg-orange-100 text-orange-800"
+      case "critical":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
   if (loading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Analysis Results</CardTitle>
+          <CardDescription>Recent glacier analysis results</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
             <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-            <span>Loading results...</span>
+            <span>Loading analysis results...</span>
           </div>
         </CardContent>
       </Card>
@@ -108,16 +117,18 @@ export default function AnalysisResults() {
       <Card>
         <CardHeader>
           <CardTitle>Analysis Results</CardTitle>
+          <CardDescription>Recent glacier analysis results</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={fetchResults} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+              <Button variant="outline" size="sm" className="ml-2 bg-transparent" onClick={fetchAnalysisResults}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     )
@@ -127,101 +138,103 @@ export default function AnalysisResults() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Recent Analysis Results</CardTitle>
-          <CardDescription>Latest glacier analysis results and their status</CardDescription>
+          <CardTitle>Analysis Results</CardTitle>
+          <CardDescription>Recent glacier analysis results ({images.length} total)</CardDescription>
         </div>
-        <Button onClick={fetchResults} variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={fetchAnalysisResults}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </CardHeader>
       <CardContent>
-        {results.length === 0 ? (
+        {images.length === 0 ? (
           <div className="text-center py-8">
-            <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">No analysis results yet</p>
+            <p className="text-gray-500 mb-4">No analysis results found</p>
             <Link href="/upload">
-              <Button>Upload First Image</Button>
+              <Button>Upload Images to Get Started</Button>
             </Link>
           </div>
         ) : (
           <div className="space-y-4">
-            {results.slice(0, 10).map((result) => (
+            {images.slice(0, 6).map((image) => (
               <div
-                key={result.id}
+                key={image.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="relative">
+                  {/* Status Icon */}
+                  <div className="flex-shrink-0">{getStatusIcon(image.analysis_status)}</div>
+
+                  {/* Image Thumbnail */}
+                  <div className="flex-shrink-0">
                     <img
-                      src={result.image_url || "/placeholder.svg"}
-                      alt="Glacier analysis"
-                      className="w-16 h-16 object-cover rounded-lg"
+                      src={image.image_url || "/placeholder.svg"}
+                      alt={image.glacier_name}
+                      className="w-12 h-12 rounded-lg object-cover"
                     />
-                    <div className="absolute -top-1 -right-1">{getStatusIcon(result.analysis_status)}</div>
                   </div>
 
-                  <div>
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-medium">{result.glacier?.name || "Unknown Glacier"}</h3>
-                      <Badge className={getStatusColor(result.analysis_status)}>{result.analysis_status}</Badge>
+                      <h4 className="text-sm font-medium text-gray-900 truncate">{image.glacier_name}</h4>
+                      <Badge className={getStatusColor(image.analysis_status)}>{image.analysis_status}</Badge>
+                      {image.analysis_results?.risk_level && (
+                        <Badge className={getRiskColor(image.analysis_results.risk_level)}>
+                          {image.analysis_results.risk_level} risk
+                        </Badge>
+                      )}
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {result.glacier?.region && result.glacier?.country
-                        ? `${result.glacier.region}, ${result.glacier.country}`
-                        : "Location unknown"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Uploaded {new Date(result.upload_date).toLocaleDateString()}
-                    </p>
+
+                    <div className="flex items-center text-xs text-gray-500 space-x-4">
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {image.region}, {image.country}
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {new Date(image.upload_date).toLocaleDateString()}
+                      </div>
+                      {image.analysis_results?.health_score && (
+                        <div className="flex items-center">
+                          <span>Health: {image.analysis_results.health_score}/10</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
+                {/* Actions */}
                 <div className="flex items-center space-x-2">
-                  {result.analysis_status === "completed" && (
-                    <>
-                      <Link href={`/analysis/${result.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Analysis
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="sm">
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Charts
+                  {image.analysis_status === "completed" && (
+                    <Link href={`/analysis/${image.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Analysis
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    </>
+                    </Link>
                   )}
 
-                  {result.analysis_status === "processing" && (
-                    <div className="flex items-center text-sm text-blue-600">
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </div>
-                  )}
-
-                  {result.analysis_status === "failed" && (
-                    <Button variant="outline" size="sm" className="text-red-600 bg-transparent">
-                      <RefreshCw className="h-4 w-4 mr-2" />
+                  {image.analysis_status === "failed" && (
+                    <Button variant="outline" size="sm">
+                      <RefreshCw className="h-4 w-4 mr-1" />
                       Retry
+                    </Button>
+                  )}
+
+                  {image.analysis_status === "processing" && (
+                    <Button variant="outline" size="sm" disabled>
+                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                      Processing...
                     </Button>
                   )}
                 </div>
               </div>
             ))}
 
-            {results.length > 10 && (
+            {images.length > 6 && (
               <div className="text-center pt-4">
-                <Link href="/results">
-                  <Button variant="outline">View All Results ({results.length})</Button>
-                </Link>
+                <Button variant="outline">View All Results ({images.length})</Button>
               </div>
             )}
           </div>
