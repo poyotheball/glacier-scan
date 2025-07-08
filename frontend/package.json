@@ -1,0 +1,40 @@
+{
+  "name": "glacier-scan-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@apollo/client": "^3.9.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/node": "22.9.1",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vercel/blob": "^0.23.4",
+    "ai": "^3.4.7",
+    "@ai-sdk/openai": "^0.0.66",
+    "autoprefixer": "10.4.20",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^3.6.0",
+    "eslint": "9.15.0",
+    "eslint-config-next": "15.0.3",
+    "graphql": "^16.9.0",
+    "maplibre-gl": "^4.7.1",
+    "next": "15.0.3",
+    "next-i18next": "^15.3.1",
+    "postcss": "8.4.49",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "tailwindcss": "3.4.14",
+    "typescript": "5.6.3"
+  },
+  "devDependencies": {
+    "@types/maplibre-gl": "^4.7.0"
+  }
+}

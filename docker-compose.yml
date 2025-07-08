@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: glacier_scan
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/nestjs-api/src/database/migrations:/docker-entrypoint-initdb.d
+
+  nestjs-api:
+    build: ./backend/nestjs-api
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/glacier_scan
+      JWT_SECRET: your-jwt-secret-key
+      CLOUD_RUN_FASTAPI_URL: http://fastapi-ai:8000
+    depends_on:
+      - postgres
+      - fastapi-ai
+    volumes:
+      - ./backend/nestjs-api:/app
+      - /app/node_modules
+
+  fastapi-ai:
+    build: ./backend/fastapi-ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/fastapi-ai:/app
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_GRAPHQL_API_URL: http://nestjs-api:3001/graphql
+    depends_on:
+      - nestjs-api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

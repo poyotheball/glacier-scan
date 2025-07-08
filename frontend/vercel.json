@@ -1,0 +1,7 @@
+{
+  "build": {
+    "env": {
+      "BACKEND_GRAPHQL_API_URL": "@backend-api-url"
+    }
+  }
+}
