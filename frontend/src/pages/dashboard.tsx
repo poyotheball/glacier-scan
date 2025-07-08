@@ -1,140 +1,217 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import type { GetStaticProps } from "next"
+import { serverSideTranslations } from "next-i18next/serverSideTranslations"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Mountain, TrendingDown, AlertTriangle, Database } from "lucide-react"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 import AlertsPanel from "@/components/dashboard/AlertsPanel"
 import AnalysisResults from "@/components/dashboard/AnalysisResults"
 import MetricsCard from "@/components/dashboard/MetricsCard"
+import { Activity, Database, ImageIcon, Mountain } from "lucide-react"
 
 interface DashboardStats {
   totalGlaciers: number
+  totalMeasurements: number
+  totalImages: number
   activeAlerts: number
-  completedAnalyses: number
-  avgMeltRate: number
 }
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalGlaciers: 0,
+    totalMeasurements: 0,
+    totalImages: 0,
     activeAlerts: 0,
-    completedAnalyses: 0,
-    avgMeltRate: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "testing">("testing")
 
   useEffect(() => {
-    fetchDashboardData()
+    loadDashboardData()
+    testDatabaseConnection()
   }, [])
 
-  const fetchDashboardData = async () => {
+  const testDatabaseConnection = async () => {
     try {
-      const [glaciersResponse, alertsResponse] = await Promise.all([fetch("/api/glaciers"), fetch("/api/alerts")])
+      const response = await fetch("/api/test-db")
+      const data = await response.json()
 
-      if (glaciersResponse.ok && alertsResponse.ok) {
-        const glaciers = await glaciersResponse.json()
-        const alerts = await alertsResponse.json()
-
-        const completedAnalyses = glaciers.reduce(
-          (total: number, glacier: any) =>
-            total + glacier.glacier_images.filter((img: any) => img.analysis_status === "completed").length,
-          0,
-        )
-
-        const allMeasurements = glaciers.flatMap((glacier: any) => glacier.measurements)
-        const avgMeltRate =
-          allMeasurements.length > 0
-            ? allMeasurements.reduce((sum: number, m: any) => sum + Number.parseFloat(m.melt_rate), 0) /
-              allMeasurements.length
-            : 0
-
-        setStats({
-          totalGlaciers: glaciers.length,
-          activeAlerts: alerts.length,
-          completedAnalyses,
-          avgMeltRate: Math.round(avgMeltRate * 100) / 100,
-        })
+      if (data.success) {
+        setConnectionStatus("connected")
+        if (data.stats) {
+          setStats(data.stats)
+        }
+      } else {
+        setConnectionStatus("disconnected")
       }
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error)
+      console.error("Database connection test failed:", error)
+      setConnectionStatus("disconnected")
+    }
+  }
+
+  const loadDashboardData = async () => {
+    try {
+      // Load glaciers data
+      const glaciersResponse = await fetch("/api/glaciers")
+      const glaciersData = await glaciersResponse.json()
+
+      if (glaciersResponse.ok && glaciersData.glaciers) {
+        const glaciers = glaciersData.glaciers
+        const totalMeasurements = glaciers.reduce(
+          (sum: number, glacier: any) => sum + (glacier.measurements?.length || 0),
+          0,
+        )
+        const totalImages = glaciers.reduce((sum: number, glacier: any) => sum + (glacier.images?.length || 0), 0)
+
+        setStats((prev) => ({
+          ...prev,
+          totalGlaciers: glaciers.length,
+          totalMeasurements,
+          totalImages,
+        }))
+      }
+
+      // Load alerts data
+      const alertsResponse = await fetch("/api/alerts")
+      const alertsData = await alertsResponse.json()
+
+      if (alertsResponse.ok && alertsData.alerts) {
+        setStats((prev) => ({
+          ...prev,
+          activeAlerts: alertsData.alerts.length,
+        }))
+      }
+    } catch (error) {
+      console.error("Error loading dashboard data:", error)
     } finally {
       setLoading(false)
     }
   }
 
+  const getConnectionBadge = () => {
+    switch (connectionStatus) {
+      case "connected":
+        return <Badge className="bg-green-100 text-green-800">Connected</Badge>
+      case "disconnected":
+        return <Badge className="bg-red-100 text-red-800">Disconnected</Badge>
+      case "testing":
+        return <Badge className="bg-yellow-100 text-yellow-800">Testing...</Badge>
+      default:
+        return <Badge variant="outline">Unknown</Badge>
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Glacier Analysis Dashboard</h1>
-          <p className="text-gray-600">Monitor glacier health and track environmental changes</p>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Glacier Analysis Dashboard</h1>
+              <p className="text-gray-600 mt-2">Monitor glacier changes and analysis results</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                <span className="text-sm text-gray-600">Database:</span>
+                {getConnectionBadge()}
+              </div>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Activity className="w-4 h-4 mr-1" />
+                Live Data
+              </Badge>
+            </div>
+          </div>
         </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <MetricsCard
             title="Total Glaciers"
-            value={stats.totalGlaciers.toString()}
-            icon={<Mountain className="h-6 w-6" />}
+            value={stats.totalGlaciers}
+            icon={<Mountain className="w-8 h-8 text-blue-500" />}
             loading={loading}
+            description="Monitored glaciers"
+          />
+          <MetricsCard
+            title="Measurements"
+            value={stats.totalMeasurements}
+            icon={<Activity className="w-8 h-8 text-green-500" />}
+            loading={loading}
+            description="Data points collected"
+          />
+          <MetricsCard
+            title="Images Analyzed"
+            value={stats.totalImages}
+            icon={<ImageIcon className="w-8 h-8 text-purple-500" />}
+            loading={loading}
+            description="Satellite images processed"
           />
           <MetricsCard
             title="Active Alerts"
-            value={stats.activeAlerts.toString()}
-            icon={<AlertTriangle className="h-6 w-6" />}
+            value={stats.activeAlerts}
+            icon={<Activity className="w-8 h-8 text-red-500" />}
             loading={loading}
+            description="Requiring attention"
             trend={stats.activeAlerts > 0 ? "up" : "stable"}
-          />
-          <MetricsCard
-            title="Completed Analyses"
-            value={stats.completedAnalyses.toString()}
-            icon={<Database className="h-6 w-6" />}
-            loading={loading}
-          />
-          <MetricsCard
-            title="Avg Melt Rate"
-            value={`${stats.avgMeltRate} m/yr`}
-            icon={<TrendingDown className="h-6 w-6" />}
-            loading={loading}
-            trend="up"
           />
         </div>
 
-        {/* Quick Actions */}
-        <Card className="mb-8">
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Analysis Results */}
+          <div className="lg:col-span-2">
+            <AnalysisResults />
+          </div>
+
+          {/* Right Column - Alerts */}
+          <div>
+            <AlertsPanel />
+          </div>
+        </div>
+
+        {/* System Status */}
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              System Status
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/upload">
-                <Button>Upload New Images</Button>
-              </Link>
-              <Link href="/map">
-                <Button variant="outline">View Glacier Map</Button>
-              </Link>
-              <Link href="/trends">
-                <Button variant="outline">View Trends</Button>
-              </Link>
-              <Button variant="outline" onClick={fetchDashboardData}>
-                Refresh Data
-              </Button>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Database Connection</h4>
+                <div className="flex items-center gap-2">
+                  {getConnectionBadge()}
+                  <span className="text-sm text-gray-600">
+                    {connectionStatus === "connected"
+                      ? "PostgreSQL connected successfully"
+                      : connectionStatus === "disconnected"
+                        ? "Unable to connect to database"
+                        : "Testing database connection..."}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Last Updated</h4>
+                <p className="text-sm text-gray-600">{new Date().toLocaleString()}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-8">
-            <AlertsPanel />
-          </div>
-          <div className="space-y-8">
-            <AnalysisResults />
-          </div>
-        </div>
       </div>
     </div>
   )
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? "en", ["common"])),
+  },
+})

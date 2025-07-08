@@ -2,31 +2,41 @@ import type { NextApiRequest, NextApiResponse } from "next"
 import { db } from "@/lib/database"
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "GET") {
-    try {
-      const glaciers = await db.getGlaciers()
-      res.status(200).json(glaciers)
-    } catch (error) {
-      console.error("Error fetching glaciers:", error)
-      res.status(500).json({ error: "Failed to fetch glaciers" })
-    }
-  } else if (req.method === "POST") {
-    try {
-      const { name, location, region, country } = req.body
+  try {
+    switch (req.method) {
+      case "GET":
+        const glaciers = await db.getGlaciers()
+        res.status(200).json({ glaciers })
+        break
 
-      const glacier = await db.createGlacier({
-        name,
-        location,
-        region,
-        country,
-      })
+      case "POST":
+        const { name, region, country, location } = req.body
 
-      res.status(201).json(glacier)
-    } catch (error) {
-      console.error("Error creating glacier:", error)
-      res.status(500).json({ error: "Failed to create glacier" })
+        if (!name || !region || !country || !location) {
+          return res.status(400).json({
+            error: "Missing required fields: name, region, country, location",
+          })
+        }
+
+        const newGlacier = await db.createGlacier({
+          name,
+          region,
+          country,
+          location,
+        })
+
+        res.status(201).json({ glacier: newGlacier })
+        break
+
+      default:
+        res.setHeader("Allow", ["GET", "POST"])
+        res.status(405).json({ error: `Method ${req.method} not allowed` })
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" })
+  } catch (error) {
+    console.error("API Error:", error)
+    res.status(500).json({
+      error: "Internal server error",
+      details: process.env.NODE_ENV === "development" ? error.message : undefined,
+    })
   }
 }
