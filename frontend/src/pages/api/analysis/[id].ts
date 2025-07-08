@@ -1,134 +1,192 @@
 import type { NextApiRequest, NextApiResponse } from "next"
-import { db } from "@/lib/database"
 
-// Mock analysis data generator
-function generateMockAnalysisData(imageId: string, glacierName: string, region: string, country: string) {
-  const baseVolume = Math.random() * 50 + 10 // 10-60 km³
-  const baseSurfaceArea = Math.random() * 100 + 20 // 20-120 km²
-  const baseMeltRate = Math.random() * 3 + 0.5 // 0.5-3.5 m/yr
-
-  // Generate historical measurements (last 5 years)
-  const measurements = []
-  const currentDate = new Date()
-
-  for (let i = 60; i >= 0; i -= 6) {
-    // Every 6 months for 5 years
-    const date = new Date(currentDate)
-    date.setMonth(date.getMonth() - i)
-
-    const volumeDecline = (60 - i) * 0.02 // Gradual decline over time
-    const seasonalVariation = Math.sin((i / 6) * Math.PI) * 0.1 // Seasonal variation
-
-    measurements.push({
-      date: date.toISOString().split("T")[0],
-      ice_volume: Math.max(0, baseVolume - volumeDecline + seasonalVariation),
-      surface_area: Math.max(0, baseSurfaceArea - volumeDecline * 1.5 + seasonalVariation),
-      melt_rate: baseMeltRate + volumeDecline * 0.1 + seasonalVariation * 0.2,
-      elevation_change: -(volumeDecline * 2) + seasonalVariation,
-    })
-  }
-
-  const currentVolume = measurements[measurements.length - 1].ice_volume
-  const healthScore = Math.max(1, Math.min(10, 10 - baseMeltRate * 2))
-
-  let riskLevel: "low" | "medium" | "high" | "critical"
-  if (healthScore >= 8) riskLevel = "low"
-  else if (healthScore >= 6) riskLevel = "medium"
-  else if (healthScore >= 4) riskLevel = "high"
-  else riskLevel = "critical"
-
-  return {
-    id: imageId,
-    glacier_name: glacierName,
-    region: region,
-    country: country,
-    location: {
-      latitude: Math.random() * 180 - 90,
-      longitude: Math.random() * 360 - 180,
-    },
-    upload_date: new Date().toISOString(),
-    analysis_status: "completed" as const,
-    analysis_results: {
-      ice_volume: currentVolume,
-      surface_area: measurements[measurements.length - 1].surface_area,
-      melt_rate: measurements[measurements.length - 1].melt_rate,
-      elevation_change: measurements[measurements.length - 1].elevation_change,
-      health_score: Math.round(healthScore * 10) / 10,
-      confidence: 0.85 + Math.random() * 0.1,
-      risk_level: riskLevel,
-      predictions: {
-        volume_change_1yr: -(Math.random() * 5 + 2),
-        volume_change_5yr: -(Math.random() * 20 + 10),
-        volume_change_10yr: -(Math.random() * 40 + 25),
+// Mock analysis data for testing
+const mockAnalysisData = {
+  "mock-1": {
+    id: "mock-1",
+    glacierName: "Franz Josef Glacier",
+    location: "New Zealand",
+    analysisDate: "2024-01-15T10:30:00Z",
+    status: "completed",
+    confidence: 0.92,
+    healthScore: 3.2,
+    riskLevel: "high",
+    metrics: {
+      iceVolume: {
+        current: 2.8,
+        change: -15.3,
+        unit: "km³",
+        trend: "declining",
       },
-      environmental_factors: {
-        temperature_trend: Math.random() * 2 + 1,
-        precipitation_change: (Math.random() - 0.5) * 20,
-        seasonal_variation: Math.random() * 15 + 5,
+      surfaceArea: {
+        current: 32.1,
+        change: -8.7,
+        unit: "km²",
+        trend: "declining",
       },
-      comparison_data: {
-        regional_average: baseVolume * (0.8 + Math.random() * 0.4),
-        global_average: baseVolume * (0.7 + Math.random() * 0.6),
-        historical_baseline: baseVolume * 1.2,
+      meltRate: {
+        current: 1.2,
+        change: 23.5,
+        unit: "m/year",
+        trend: "increasing",
+      },
+      thickness: {
+        current: 87.3,
+        change: -12.1,
+        unit: "m",
+        trend: "declining",
       },
     },
-    image_url: `/placeholder.svg?height=400&width=600&text=${encodeURIComponent(glacierName)}`,
-    measurements: measurements,
-  }
+    historicalData: {
+      iceVolume: [
+        { date: "2020-01-01", value: 3.5 },
+        { date: "2021-01-01", value: 3.3 },
+        { date: "2022-01-01", value: 3.1 },
+        { date: "2023-01-01", value: 2.9 },
+        { date: "2024-01-01", value: 2.8 },
+      ],
+      surfaceArea: [
+        { date: "2020-01-01", value: 38.2 },
+        { date: "2021-01-01", value: 36.8 },
+        { date: "2022-01-01", value: 35.1 },
+        { date: "2023-01-01", value: 33.4 },
+        { date: "2024-01-01", value: 32.1 },
+      ],
+      meltRate: [
+        { date: "2020-01-01", value: 0.8 },
+        { date: "2021-01-01", value: 0.9 },
+        { date: "2022-01-01", value: 1.0 },
+        { date: "2023-01-01", value: 1.1 },
+        { date: "2024-01-01", value: 1.2 },
+      ],
+    },
+    predictions: {
+      oneYear: { iceVolume: 2.6, confidence: 0.89 },
+      fiveYear: { iceVolume: 2.1, confidence: 0.75 },
+      tenYear: { iceVolume: 1.5, confidence: 0.62 },
+    },
+    environmentalFactors: {
+      avgTemperature: 8.3,
+      temperatureChange: 1.8,
+      precipitation: 2800,
+      precipitationChange: -12.5,
+      seasonalVariation: "high",
+    },
+    comparisonData: {
+      regional: [
+        { name: "Fox Glacier", value: 2.1, change: -18.2 },
+        { name: "Tasman Glacier", value: 15.8, change: -9.3 },
+        { name: "Hooker Glacier", value: 1.9, change: -14.7 },
+      ],
+      global: {
+        averageChange: -11.2,
+        percentile: 78,
+      },
+    },
+  },
+  "mock-2": {
+    id: "mock-2",
+    glacierName: "Perito Moreno Glacier",
+    location: "Argentina",
+    analysisDate: "2024-01-14T14:20:00Z",
+    status: "completed",
+    confidence: 0.88,
+    healthScore: 7.8,
+    riskLevel: "low",
+    metrics: {
+      iceVolume: {
+        current: 195.2,
+        change: 2.1,
+        unit: "km³",
+        trend: "stable",
+      },
+      surfaceArea: {
+        current: 258.3,
+        change: 0.8,
+        unit: "km²",
+        trend: "stable",
+      },
+      meltRate: {
+        current: 0.3,
+        change: -5.2,
+        unit: "m/year",
+        trend: "decreasing",
+      },
+      thickness: {
+        current: 756.1,
+        change: 1.3,
+        unit: "m",
+        trend: "stable",
+      },
+    },
+    historicalData: {
+      iceVolume: [
+        { date: "2020-01-01", value: 191.2 },
+        { date: "2021-01-01", value: 192.8 },
+        { date: "2022-01-01", value: 194.1 },
+        { date: "2023-01-01", value: 194.9 },
+        { date: "2024-01-01", value: 195.2 },
+      ],
+      surfaceArea: [
+        { date: "2020-01-01", value: 256.1 },
+        { date: "2021-01-01", value: 257.2 },
+        { date: "2022-01-01", value: 257.8 },
+        { date: "2023-01-01", value: 258.0 },
+        { date: "2024-01-01", value: 258.3 },
+      ],
+      meltRate: [
+        { date: "2020-01-01", value: 0.35 },
+        { date: "2021-01-01", value: 0.33 },
+        { date: "2022-01-01", value: 0.32 },
+        { date: "2023-01-01", value: 0.31 },
+        { date: "2024-01-01", value: 0.3 },
+      ],
+    },
+    predictions: {
+      oneYear: { iceVolume: 195.8, confidence: 0.91 },
+      fiveYear: { iceVolume: 197.2, confidence: 0.82 },
+      tenYear: { iceVolume: 198.5, confidence: 0.71 },
+    },
+    environmentalFactors: {
+      avgTemperature: 2.1,
+      temperatureChange: 0.8,
+      precipitation: 800,
+      precipitationChange: 5.2,
+      seasonalVariation: "moderate",
+    },
+    comparisonData: {
+      regional: [
+        { name: "Upsala Glacier", value: 45.2, change: -22.1 },
+        { name: "Spegazzini Glacier", value: 32.8, change: -8.9 },
+        { name: "Viedma Glacier", value: 978.1, change: -15.3 },
+      ],
+      global: {
+        averageChange: -11.2,
+        percentile: 15,
+      },
+    },
+  },
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" })
+    return res.status(405).json({ message: "Method not allowed" })
   }
 
   const { id } = req.query
 
   if (!id || typeof id !== "string") {
-    return res.status(400).json({ error: "Invalid analysis ID" })
+    return res.status(400).json({ message: "Analysis ID is required" })
   }
 
-  try {
-    // Try to get real data from database first
-    const glacierImage = await db.getGlacierImageById(id)
+  const analysisData = mockAnalysisData[id as keyof typeof mockAnalysisData]
 
-    if (glacierImage && glacierImage.analysis_status === "completed") {
-      // Return real analysis data if available
-      const analysisData = {
-        id: glacierImage.id,
-        glacier_name: glacierImage.glacier?.name || "Unknown Glacier",
-        region: glacierImage.glacier?.region || "Unknown Region",
-        country: glacierImage.glacier?.country || "Unknown Country",
-        location: glacierImage.glacier?.location || { latitude: 0, longitude: 0 },
-        upload_date: glacierImage.upload_date,
-        analysis_status: glacierImage.analysis_status,
-        analysis_results: glacierImage.analysis_results || {},
-        image_url: glacierImage.image_url,
-        measurements: [], // Would need to fetch from measurements table
-      }
-
-      return res.status(200).json(analysisData)
-    }
-
-    // Generate mock data for testing
-    const mockGlaciers = [
-      { name: "Franz Josef Glacier", region: "West Coast", country: "New Zealand" },
-      { name: "Perito Moreno", region: "Patagonia", country: "Argentina" },
-      { name: "Glacier Bay", region: "Alaska", country: "United States" },
-      { name: "Vatnajökull", region: "Iceland", country: "Iceland" },
-      { name: "Mont Blanc Glacier", region: "Alps", country: "France" },
-      { name: "Athabasca Glacier", region: "Alberta", country: "Canada" },
-    ]
-
-    const randomGlacier = mockGlaciers[Math.floor(Math.random() * mockGlaciers.length)]
-    const mockData = generateMockAnalysisData(id, randomGlacier.name, randomGlacier.region, randomGlacier.country)
-
-    res.status(200).json(mockData)
-  } catch (error) {
-    console.error("Error fetching analysis data:", error)
-    res.status(500).json({
-      error: "Failed to fetch analysis data",
-      details: process.env.NODE_ENV === "development" ? error.message : undefined,
-    })
+  if (!analysisData) {
+    return res.status(404).json({ message: "Analysis not found" })
   }
+
+  res.status(200).json({
+    success: true,
+    data: analysisData,
+  })
 }
