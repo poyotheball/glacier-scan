@@ -1,13 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 
-// Mock glacier images data for testing
+// Mock glacier images data
 const mockGlacierImages = [
   {
-    id: "img-1",
+    id: "mock-1",
     glacierName: "Franz Josef Glacier",
     location: "New Zealand",
     uploadDate: "2024-01-15T10:30:00Z",
-    analysisId: "mock-1",
     status: "completed",
     confidence: 0.92,
     healthScore: 3.2,
@@ -16,24 +15,22 @@ const mockGlacierImages = [
     thumbnailUrl: "/placeholder.jpg",
   },
   {
-    id: "img-2",
+    id: "mock-2",
     glacierName: "Perito Moreno Glacier",
     location: "Argentina",
-    uploadDate: "2024-01-14T14:20:00Z",
-    analysisId: "mock-2",
+    uploadDate: "2024-01-14T15:45:00Z",
     status: "completed",
-    confidence: 0.88,
+    confidence: 0.95,
     healthScore: 7.8,
     riskLevel: "low",
     imageUrl: "/placeholder.jpg",
     thumbnailUrl: "/placeholder.jpg",
   },
   {
-    id: "img-3",
+    id: "mock-3",
     glacierName: "Glacier Bay",
     location: "Alaska, USA",
     uploadDate: "2024-01-13T09:15:00Z",
-    analysisId: "mock-3",
     status: "processing",
     confidence: null,
     healthScore: null,
@@ -42,11 +39,10 @@ const mockGlacierImages = [
     thumbnailUrl: "/placeholder.jpg",
   },
   {
-    id: "img-4",
+    id: "mock-4",
     glacierName: "Vatnajökull",
     location: "Iceland",
-    uploadDate: "2024-01-12T16:45:00Z",
-    analysisId: "mock-4",
+    uploadDate: "2024-01-12T14:20:00Z",
     status: "pending",
     confidence: null,
     healthScore: null,
@@ -55,11 +51,10 @@ const mockGlacierImages = [
     thumbnailUrl: "/placeholder.jpg",
   },
   {
-    id: "img-5",
+    id: "mock-5",
     glacierName: "Athabasca Glacier",
     location: "Canada",
-    uploadDate: "2024-01-11T11:30:00Z",
-    analysisId: "mock-5",
+    uploadDate: "2024-01-11T11:00:00Z",
     status: "failed",
     confidence: null,
     healthScore: null,
@@ -69,14 +64,13 @@ const mockGlacierImages = [
     error: "Image quality too low for analysis",
   },
   {
-    id: "img-6",
+    id: "mock-6",
     glacierName: "Mer de Glace",
     location: "France",
-    uploadDate: "2024-01-10T13:20:00Z",
-    analysisId: "mock-6",
+    uploadDate: "2024-01-10T16:30:00Z",
     status: "completed",
-    confidence: 0.85,
-    healthScore: 4.1,
+    confidence: 0.88,
+    healthScore: 4.5,
     riskLevel: "medium",
     imageUrl: "/placeholder.jpg",
     thumbnailUrl: "/placeholder.jpg",
@@ -85,63 +79,53 @@ const mockGlacierImages = [
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
-    const { status, limit = "10", offset = "0" } = req.query
+    const { page = "1", limit = "10", status } = req.query
 
     let filteredImages = mockGlacierImages
 
     // Filter by status if provided
-    if (status && typeof status === "string") {
-      filteredImages = filteredImages.filter((img) => img.status === status)
+    if (status && status !== "all") {
+      filteredImages = mockGlacierImages.filter((img) => img.status === status)
     }
 
-    // Apply pagination
-    const limitNum = Number.parseInt(limit as string, 10)
-    const offsetNum = Number.parseInt(offset as string, 10)
-    const paginatedImages = filteredImages.slice(offsetNum, offsetNum + limitNum)
+    // Pagination
+    const pageNum = Number.parseInt(page as string)
+    const limitNum = Number.parseInt(limit as string)
+    const startIndex = (pageNum - 1) * limitNum
+    const endIndex = startIndex + limitNum
+
+    const paginatedImages = filteredImages.slice(startIndex, endIndex)
 
     return res.status(200).json({
-      success: true,
-      data: paginatedImages,
+      images: paginatedImages,
       pagination: {
-        total: filteredImages.length,
-        limit: limitNum,
-        offset: offsetNum,
-        hasMore: offsetNum + limitNum < filteredImages.length,
+        currentPage: pageNum,
+        totalPages: Math.ceil(filteredImages.length / limitNum),
+        totalItems: filteredImages.length,
+        hasNext: endIndex < filteredImages.length,
+        hasPrev: pageNum > 1,
       },
     })
   }
 
   if (req.method === "POST") {
     // Mock creating a new glacier image analysis
-    const { glacierName, location, imageUrl } = req.body
-
-    if (!glacierName || !location || !imageUrl) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields: glacierName, location, imageUrl",
-      })
-    }
-
     const newImage = {
-      id: `img-${Date.now()}`,
-      glacierName,
-      location,
+      id: `mock-${Date.now()}`,
+      glacierName: req.body.glacierName || "Unknown Glacier",
+      location: req.body.location || "Unknown Location",
       uploadDate: new Date().toISOString(),
-      analysisId: `analysis-${Date.now()}`,
       status: "pending",
       confidence: null,
       healthScore: null,
       riskLevel: null,
-      imageUrl,
-      thumbnailUrl: imageUrl,
+      imageUrl: req.body.imageUrl || "/placeholder.jpg",
+      thumbnailUrl: req.body.thumbnailUrl || "/placeholder.jpg",
     }
 
-    return res.status(201).json({
-      success: true,
-      data: newImage,
-      message: "Analysis started successfully",
-    })
+    return res.status(201).json(newImage)
   }
 
-  return res.status(405).json({ message: "Method not allowed" })
+  res.setHeader("Allow", ["GET", "POST"])
+  res.status(405).end(`Method ${req.method} Not Allowed`)
 }

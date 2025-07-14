@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 
-// Mock analysis data for testing
-const mockAnalysisData = {
+// Mock analysis data
+const mockAnalyses = {
   "mock-1": {
     id: "mock-1",
     glacierName: "Franz Josef Glacier",
@@ -11,7 +11,7 @@ const mockAnalysisData = {
     confidence: 0.92,
     healthScore: 3.2,
     riskLevel: "high",
-    metrics: {
+    keyMetrics: {
       iceVolume: {
         current: 2.8,
         change: -15.3,
@@ -37,63 +37,60 @@ const mockAnalysisData = {
         trend: "declining",
       },
     },
-    historicalData: {
-      iceVolume: [
-        { date: "2020-01-01", value: 3.5 },
-        { date: "2021-01-01", value: 3.3 },
-        { date: "2022-01-01", value: 3.1 },
-        { date: "2023-01-01", value: 2.9 },
-        { date: "2024-01-01", value: 2.8 },
-      ],
-      surfaceArea: [
-        { date: "2020-01-01", value: 38.2 },
-        { date: "2021-01-01", value: 36.8 },
-        { date: "2022-01-01", value: 35.1 },
-        { date: "2023-01-01", value: 33.4 },
-        { date: "2024-01-01", value: 32.1 },
-      ],
-      meltRate: [
-        { date: "2020-01-01", value: 0.8 },
-        { date: "2021-01-01", value: 0.9 },
-        { date: "2022-01-01", value: 1.0 },
-        { date: "2023-01-01", value: 1.1 },
-        { date: "2024-01-01", value: 1.2 },
-      ],
-    },
+    historicalData: [
+      { date: "2020-01-01", iceVolume: 3.3, surfaceArea: 35.2, meltRate: 0.8, thickness: 99.1 },
+      { date: "2021-01-01", iceVolume: 3.1, surfaceArea: 34.1, meltRate: 0.9, thickness: 95.7 },
+      { date: "2022-01-01", iceVolume: 2.9, surfaceArea: 33.5, meltRate: 1.0, thickness: 91.2 },
+      { date: "2023-01-01", iceVolume: 2.8, surfaceArea: 32.8, meltRate: 1.1, thickness: 88.9 },
+      { date: "2024-01-01", iceVolume: 2.8, surfaceArea: 32.1, meltRate: 1.2, thickness: 87.3 },
+    ],
     predictions: {
-      oneYear: { iceVolume: 2.6, confidence: 0.89 },
-      fiveYear: { iceVolume: 2.1, confidence: 0.75 },
-      tenYear: { iceVolume: 1.5, confidence: 0.62 },
+      oneYear: { iceVolume: 2.6, surfaceArea: 31.2, confidence: 0.89 },
+      fiveYear: { iceVolume: 2.1, surfaceArea: 28.5, confidence: 0.72 },
+      tenYear: { iceVolume: 1.5, surfaceArea: 24.8, confidence: 0.58 },
     },
     environmentalFactors: {
-      avgTemperature: 8.3,
+      avgTemperature: 8.2,
       temperatureChange: 1.8,
       precipitation: 2800,
-      precipitationChange: -12.5,
+      precipitationChange: -12.3,
       seasonalVariation: "high",
     },
     comparisonData: {
-      regional: [
-        { name: "Fox Glacier", value: 2.1, change: -18.2 },
-        { name: "Tasman Glacier", value: 15.8, change: -9.3 },
-        { name: "Hooker Glacier", value: 1.9, change: -14.7 },
-      ],
+      regional: {
+        avgHealthScore: 4.1,
+        avgVolumeChange: -8.2,
+        totalGlaciers: 23,
+      },
       global: {
-        averageChange: -11.2,
-        percentile: 78,
+        avgHealthScore: 5.3,
+        avgVolumeChange: -5.1,
+        totalGlaciers: 198000,
       },
     },
+    alerts: [
+      {
+        type: "critical",
+        message: "Accelerated ice loss detected in lower elevation areas",
+        date: "2024-01-10T08:00:00Z",
+      },
+      {
+        type: "warning",
+        message: "Unusual melt patterns observed in recent satellite imagery",
+        date: "2024-01-08T14:30:00Z",
+      },
+    ],
   },
   "mock-2": {
     id: "mock-2",
     glacierName: "Perito Moreno Glacier",
     location: "Argentina",
-    analysisDate: "2024-01-14T14:20:00Z",
+    analysisDate: "2024-01-14T15:45:00Z",
     status: "completed",
-    confidence: 0.88,
+    confidence: 0.95,
     healthScore: 7.8,
     riskLevel: "low",
-    metrics: {
+    keyMetrics: {
       iceVolume: {
         current: 195.2,
         change: 2.1,
@@ -114,38 +111,22 @@ const mockAnalysisData = {
       },
       thickness: {
         current: 756.1,
-        change: 1.3,
+        change: 1.2,
         unit: "m",
         trend: "stable",
       },
     },
-    historicalData: {
-      iceVolume: [
-        { date: "2020-01-01", value: 191.2 },
-        { date: "2021-01-01", value: 192.8 },
-        { date: "2022-01-01", value: 194.1 },
-        { date: "2023-01-01", value: 194.9 },
-        { date: "2024-01-01", value: 195.2 },
-      ],
-      surfaceArea: [
-        { date: "2020-01-01", value: 256.1 },
-        { date: "2021-01-01", value: 257.2 },
-        { date: "2022-01-01", value: 257.8 },
-        { date: "2023-01-01", value: 258.0 },
-        { date: "2024-01-01", value: 258.3 },
-      ],
-      meltRate: [
-        { date: "2020-01-01", value: 0.35 },
-        { date: "2021-01-01", value: 0.33 },
-        { date: "2022-01-01", value: 0.32 },
-        { date: "2023-01-01", value: 0.31 },
-        { date: "2024-01-01", value: 0.3 },
-      ],
-    },
+    historicalData: [
+      { date: "2020-01-01", iceVolume: 191.1, surfaceArea: 256.8, meltRate: 0.4, thickness: 744.2 },
+      { date: "2021-01-01", iceVolume: 192.8, surfaceArea: 257.1, meltRate: 0.35, thickness: 748.9 },
+      { date: "2022-01-01", iceVolume: 194.2, surfaceArea: 257.9, meltRate: 0.32, thickness: 752.3 },
+      { date: "2023-01-01", iceVolume: 194.8, surfaceArea: 258.1, meltRate: 0.31, thickness: 754.7 },
+      { date: "2024-01-01", iceVolume: 195.2, surfaceArea: 258.3, meltRate: 0.3, thickness: 756.1 },
+    ],
     predictions: {
-      oneYear: { iceVolume: 195.8, confidence: 0.91 },
-      fiveYear: { iceVolume: 197.2, confidence: 0.82 },
-      tenYear: { iceVolume: 198.5, confidence: 0.71 },
+      oneYear: { iceVolume: 195.8, surfaceArea: 258.7, confidence: 0.93 },
+      fiveYear: { iceVolume: 197.1, surfaceArea: 259.8, confidence: 0.81 },
+      tenYear: { iceVolume: 198.5, surfaceArea: 261.2, confidence: 0.69 },
     },
     environmentalFactors: {
       avgTemperature: 2.1,
@@ -155,38 +136,34 @@ const mockAnalysisData = {
       seasonalVariation: "moderate",
     },
     comparisonData: {
-      regional: [
-        { name: "Upsala Glacier", value: 45.2, change: -22.1 },
-        { name: "Spegazzini Glacier", value: 32.8, change: -8.9 },
-        { name: "Viedma Glacier", value: 978.1, change: -15.3 },
-      ],
+      regional: {
+        avgHealthScore: 6.2,
+        avgVolumeChange: -2.1,
+        totalGlaciers: 48,
+      },
       global: {
-        averageChange: -11.2,
-        percentile: 15,
+        avgHealthScore: 5.3,
+        avgVolumeChange: -5.1,
+        totalGlaciers: 198000,
       },
     },
+    alerts: [],
   },
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ message: "Method not allowed" })
-  }
-
   const { id } = req.query
 
-  if (!id || typeof id !== "string") {
-    return res.status(400).json({ message: "Analysis ID is required" })
+  if (req.method === "GET") {
+    const analysis = mockAnalyses[id as string]
+
+    if (!analysis) {
+      return res.status(404).json({ error: "Analysis not found" })
+    }
+
+    return res.status(200).json(analysis)
   }
 
-  const analysisData = mockAnalysisData[id as keyof typeof mockAnalysisData]
-
-  if (!analysisData) {
-    return res.status(404).json({ message: "Analysis not found" })
-  }
-
-  res.status(200).json({
-    success: true,
-    data: analysisData,
-  })
+  res.setHeader("Allow", ["GET"])
+  res.status(405).end(`Method ${req.method} Not Allowed`)
 }
