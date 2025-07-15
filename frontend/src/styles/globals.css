@@ -58,28 +58,83 @@
   }
 }
 
-/* Custom styles for glacier scan */
-.glacier-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Custom styles for glacier analysis */
+.glacier-card {
+  @apply bg-white rounded-lg shadow-md p-6 border border-gray-200;
 }
 
-.chart-container {
-  position: relative;
-  height: 400px;
-  width: 100%;
-}
-
-.analysis-sidebar {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(0, 0, 0, 0.1);
+.glacier-card:hover {
+  @apply shadow-lg transform scale-105 transition-all duration-200;
 }
 
 .metric-card {
-  transition: all 0.3s ease;
+  @apply bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-lg border border-blue-200;
 }
 
-.metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.status-active {
+  @apply bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium;
+}
+
+.status-warning {
+  @apply bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-medium;
+}
+
+.status-critical {
+  @apply bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm font-medium;
+}
+
+.chart-container {
+  @apply bg-white p-4 rounded-lg shadow-sm border border-gray-100;
+}
+
+.sidebar-section {
+  @apply mb-6 p-4 bg-gray-50 rounded-lg;
+}
+
+.sidebar-section h3 {
+  @apply text-lg font-semibold mb-3 text-gray-800;
+}
+
+.sidebar-section .option-group {
+  @apply space-y-2;
+}
+
+.sidebar-section .option-item {
+  @apply flex items-center space-x-2 p-2 hover:bg-gray-100 rounded cursor-pointer;
+}
+
+.analysis-tab {
+  @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+.analysis-tab.active {
+  @apply bg-blue-600 text-white;
+}
+
+.analysis-tab:not(.active) {
+  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+.glacier-image {
+  @apply rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200;
+}
+
+.recommendation-card {
+  @apply bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg;
+}
+
+.alert-card {
+  @apply bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg;
+}
+
+.trend-positive {
+  @apply text-green-600 font-semibold;
+}
+
+.trend-negative {
+  @apply text-red-600 font-semibold;
+}
+
+.trend-neutral {
+  @apply text-gray-600 font-semibold;
 }

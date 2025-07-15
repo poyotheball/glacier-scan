@@ -1,22 +1,6 @@
-const { i18n } = require("./next-i18next.config")
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  i18n,
-  env: {
-    BACKEND_GRAPHQL_API_URL: process.env.BACKEND_GRAPHQL_API_URL,
-  },
-  experimental: {
-    turbo: {
-      rules: {
-        "*.svg": {
-          loaders: ["@svgr/webpack"],
-          as: "*.js",
-        },
-      },
-    },
-  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -24,7 +8,16 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    domains: ["localhost"],
     unoptimized: true,
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/ai/:path*",
+        destination: "http://localhost:8000/:path*",
+      },
+    ]
   },
 }
 

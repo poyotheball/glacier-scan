@@ -1,138 +1,143 @@
-import Link from "next/link"
-import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react"
+"use client"
 
-interface AnalysisResult {
-  id: string
-  glacierName: string
-  location: string
-  status: "stable" | "retreating" | "advancing" | "critical"
-  healthScore: number
-  lastUpdated: string
-  changePercent: number
+import React from "react"
+
+interface AnalysisResultsProps {
+  glacierId: string
 }
 
-const mockResults: AnalysisResult[] = [
-  {
-    id: "mock-1",
-    glacierName: "Franz Josef Glacier",
-    location: "New Zealand",
-    status: "retreating",
-    healthScore: 65,
-    lastUpdated: "2024-01-15",
-    changePercent: -12.3,
-  },
-  {
-    id: "mock-2",
-    glacierName: "Perito Moreno Glacier",
-    location: "Argentina",
-    status: "stable",
-    healthScore: 82,
-    lastUpdated: "2024-01-14",
-    changePercent: 0.5,
-  },
-  {
-    id: "mock-3",
-    glacierName: "Athabasca Glacier",
-    location: "Canada",
-    status: "critical",
-    healthScore: 34,
-    lastUpdated: "2024-01-13",
-    changePercent: -18.7,
-  },
-]
+export default function AnalysisResults({ glacierId }: AnalysisResultsProps) {
+  const [analysisData, setAnalysisData] = React.useState<any>(null)
+  const [loading, setLoading] = React.useState(true)
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "stable":
-      return "text-green-600 bg-green-100"
-    case "retreating":
-      return "text-yellow-600 bg-yellow-100"
-    case "advancing":
-      return "text-blue-600 bg-blue-100"
-    case "critical":
-      return "text-red-600 bg-red-100"
-    default:
-      return "text-gray-600 bg-gray-100"
+  React.useEffect(() => {
+    async function fetchAnalysis() {
+      try {
+        const response = await fetch(`/api/analysis/${glacierId}`)
+        const data = await response.json()
+        setAnalysisData(data)
+      } catch (error) {
+        console.error("Failed to fetch analysis:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAnalysis()
+  }, [glacierId])
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
-}
 
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case "stable":
-      return <Minus className="h-4 w-4" />
-    case "retreating":
-      return <TrendingDown className="h-4 w-4" />
-    case "advancing":
-      return <TrendingUp className="h-4 w-4" />
-    case "critical":
-      return <AlertTriangle className="h-4 w-4" />
-    default:
-      return <Minus className="h-4 w-4" />
+  if (!analysisData) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <p className="text-gray-500">Failed to load analysis data</p>
+      </div>
+    )
   }
-}
 
-export default function AnalysisResults() {
+  const { glacier, analysis } = analysisData
+
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Recent Analysis Results</h2>
+      <div className="p-6 border-b">
+        <h2 className="text-xl font-semibold text-gray-900">Analysis Results: {glacier.name}</h2>
+        <p className="text-gray-600 mt-1">{glacier.location}</p>
       </div>
-      <div className="divide-y divide-gray-200">
-        {mockResults.map((result) => (
-          <div key={result.id} className="p-6 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-medium text-gray-900">{result.glacierName}</h3>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(result.status)}`}
-                  >
-                    {getStatusIcon(result.status)}
-                    <span className="ml-1 capitalize">{result.status}</span>
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">{result.location}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm text-gray-500">Health Score:</span>
-                    <span
-                      className={`text-sm font-medium ${
-                        result.healthScore >= 70
-                          ? "text-green-600"
-                          : result.healthScore >= 50
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
-                    >
-                      {result.healthScore}%
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm text-gray-500">Change:</span>
-                    <span
-                      className={`text-sm font-medium ${result.changePercent > 0 ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {result.changePercent > 0 ? "+" : ""}
-                      {result.changePercent}%
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm text-gray-500">Updated:</span>
-                    <span className="text-sm text-gray-900">{result.lastUpdated}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Link
-                  href={`/analysis/${result.id}`}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  View Analysis
-                </Link>
-              </div>
+
+      <div className="p-6 space-y-6">
+        {/* Risk Assessment */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Risk Assessment</h3>
+          <div className="flex items-center space-x-3">
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                analysis.riskLevel === "healthy"
+                  ? "bg-green-100 text-green-800"
+                  : analysis.riskLevel === "warning"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-red-100 text-red-800"
+              }`}
+            >
+              {analysis.riskLevel.charAt(0).toUpperCase() + analysis.riskLevel.slice(1)}
+            </span>
+            <span className="text-gray-600">Change Rate: {analysis.changeRate.toFixed(2)}% annually</span>
+          </div>
+        </div>
+
+        {/* Key Metrics */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Current Metrics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Area</p>
+              <p className="text-xl font-semibold">{glacier.area} km²</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Volume</p>
+              <p className="text-xl font-semibold">{glacier.volume} km³</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Elevation</p>
+              <p className="text-xl font-semibold">{glacier.elevation} m</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm text-gray-600">Temperature</p>
+              <p className="text-xl font-semibold">{glacier.temperature}°C</p>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Predictions */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Predictions</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <span className="text-gray-700">Next Year Area</span>
+              <span className="font-medium">
+                {analysis.predictions.nextYear.area.toFixed(1)} km²
+                <span className="text-sm text-gray-500 ml-2">
+                  ({analysis.predictions.nextYear.confidence}% confidence)
+                </span>
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <span className="text-gray-700">5-Year Area</span>
+              <span className="font-medium">
+                {analysis.predictions.fiveYear.area.toFixed(1)} km²
+                <span className="text-sm text-gray-500 ml-2">
+                  ({analysis.predictions.fiveYear.confidence}% confidence)
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Recommendations */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Recommendations</h3>
+          <ul className="space-y-2">
+            {analysis.recommendations.map((rec: string, index: number) => (
+              <li key={index} className="flex items-start space-x-2">
+                <span className="text-blue-600 mt-1">•</span>
+                <span className="text-gray-700">{rec}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   )

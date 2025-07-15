@@ -1,110 +1,202 @@
 import { neon } from "@neondatabase/serverless"
 
-// Use Neon serverless for better Windows compatibility
-const sql = neon(process.env.DATABASE_URL || "")
+// Mock database connection for development
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null
 
-export interface Glacier {
+export interface GlacierData {
   id: string
   name: string
   location: string
-  latitude: number
-  longitude: number
-  area_km2: number
-  elevation_m: number
-  last_updated: string
-  status: "stable" | "retreating" | "advancing" | "critical"
-  health_score: number
+  area: number
+  volume: number
+  status: "stable" | "retreating" | "advancing"
+  lastUpdated: string
+  healthScore: number
+  temperature: number
+  precipitation: number
+  images: string[]
 }
 
-export interface GlacierAnalysis {
+export interface AnalysisData {
   id: string
-  glacier_id: string
-  analysis_date: string
-  ice_coverage_percent: number
-  volume_km3: number
-  retreat_rate_m_year: number
-  temperature_avg_c: number
-  precipitation_mm: number
-  health_score: number
-  notes: string
+  glacierId: string
+  analysisDate: string
+  metrics: {
+    area: number
+    volume: number
+    thickness: number
+    velocity: number
+    temperature: number
+    precipitation: number
+  }
+  trends: {
+    areaChange: number
+    volumeChange: number
+    temperatureChange: number
+  }
+  recommendations: string[]
+  alerts: Array<{
+    type: "warning" | "critical" | "info"
+    message: string
+    date: string
+  }>
 }
 
-export async function getGlaciers(): Promise<Glacier[]> {
-  try {
-    const result = await sql`
-      SELECT * FROM glaciers 
-      ORDER BY last_updated DESC
-    `
-    return result as Glacier[]
-  } catch (error) {
-    console.error("Database error:", error)
-    // Return mock data if database is not available
-    return [
+// Mock data for development
+const mockGlaciers: GlacierData[] = [
+  {
+    id: "mock-1",
+    name: "Franz Josef Glacier",
+    location: "New Zealand",
+    area: 32.5,
+    volume: 4.2,
+    status: "retreating",
+    lastUpdated: "2024-01-15",
+    healthScore: 65,
+    temperature: -2.5,
+    precipitation: 3200,
+    images: ["/placeholder.jpg", "/placeholder.jpg"],
+  },
+  {
+    id: "mock-2",
+    name: "Perito Moreno Glacier",
+    location: "Argentina",
+    area: 250.0,
+    volume: 28.0,
+    status: "stable",
+    lastUpdated: "2024-01-14",
+    healthScore: 82,
+    temperature: -4.1,
+    precipitation: 800,
+    images: ["/placeholder.jpg", "/placeholder.jpg"],
+  },
+  {
+    id: "mock-3",
+    name: "Athabasca Glacier",
+    location: "Canada",
+    area: 6.0,
+    volume: 0.8,
+    status: "retreating",
+    lastUpdated: "2024-01-13",
+    healthScore: 45,
+    temperature: -1.8,
+    precipitation: 1200,
+    images: ["/placeholder.jpg", "/placeholder.jpg"],
+  },
+]
+
+const mockAnalyses: AnalysisData[] = [
+  {
+    id: "analysis-1",
+    glacierId: "mock-1",
+    analysisDate: "2024-01-15",
+    metrics: {
+      area: 32.5,
+      volume: 4.2,
+      thickness: 180,
+      velocity: 0.5,
+      temperature: -2.5,
+      precipitation: 3200,
+    },
+    trends: {
+      areaChange: -2.3,
+      volumeChange: -1.8,
+      temperatureChange: 0.8,
+    },
+    recommendations: [
+      "Monitor ice velocity changes more frequently",
+      "Install additional temperature sensors",
+      "Increase observation frequency during summer months",
+    ],
+    alerts: [
       {
-        id: "mock-1",
-        name: "Franz Josef Glacier",
-        location: "New Zealand",
-        latitude: -43.4668,
-        longitude: 170.1953,
-        area_km2: 32.4,
-        elevation_m: 3000,
-        last_updated: "2024-01-15T10:30:00Z",
-        status: "retreating",
-        health_score: 65,
+        type: "warning",
+        message: "Accelerated retreat detected in lower terminus",
+        date: "2024-01-15",
       },
       {
-        id: "mock-2",
-        name: "Perito Moreno Glacier",
-        location: "Argentina",
-        latitude: -50.4648,
-        longitude: -73.0311,
-        area_km2: 250.0,
-        elevation_m: 2950,
-        last_updated: "2024-01-14T14:20:00Z",
-        status: "stable",
-        health_score: 82,
+        type: "info",
+        message: "New satellite imagery available",
+        date: "2024-01-14",
       },
+    ],
+  },
+  {
+    id: "analysis-2",
+    glacierId: "mock-2",
+    analysisDate: "2024-01-14",
+    metrics: {
+      area: 250.0,
+      volume: 28.0,
+      thickness: 170,
+      velocity: 2.0,
+      temperature: -4.1,
+      precipitation: 800,
+    },
+    trends: {
+      areaChange: 0.1,
+      volumeChange: 0.3,
+      temperatureChange: -0.2,
+    },
+    recommendations: [
+      "Continue current monitoring schedule",
+      "Document calving events",
+      "Maintain weather station network",
+    ],
+    alerts: [
       {
-        id: "mock-3",
-        name: "Athabasca Glacier",
-        location: "Canada",
-        latitude: 52.1943,
-        longitude: -117.2284,
-        area_km2: 6.0,
-        elevation_m: 2845,
-        last_updated: "2024-01-13T09:15:00Z",
-        status: "critical",
-        health_score: 34,
+        type: "info",
+        message: "Glacier showing stable conditions",
+        date: "2024-01-14",
       },
-    ]
+    ],
+  },
+]
+
+export async function getGlaciers(): Promise<GlacierData[]> {
+  if (sql) {
+    try {
+      const result = await sql`SELECT * FROM glaciers ORDER BY name`
+      return result as GlacierData[]
+    } catch (error) {
+      console.warn("Database not available, using mock data:", error)
+    }
   }
+  return mockGlaciers
 }
 
-export async function getGlacierAnalysis(glacierId: string): Promise<GlacierAnalysis[]> {
-  try {
-    const result = await sql`
-      SELECT * FROM glacier_analysis 
-      WHERE glacier_id = ${glacierId}
-      ORDER BY analysis_date DESC
-      LIMIT 10
-    `
-    return result as GlacierAnalysis[]
-  } catch (error) {
-    console.error("Database error:", error)
-    // Return mock data if database is not available
-    return [
-      {
-        id: `analysis-${glacierId}-1`,
-        glacier_id: glacierId,
-        analysis_date: "2024-01-15T10:30:00Z",
-        ice_coverage_percent: 78.5,
-        volume_km3: 2.4,
-        retreat_rate_m_year: 12.3,
-        temperature_avg_c: -2.1,
-        precipitation_mm: 1250,
-        health_score: glacierId === "mock-1" ? 65 : glacierId === "mock-2" ? 82 : 34,
-        notes: "Significant retreat observed in the terminus region",
-      },
-    ]
+export async function getGlacierById(id: string): Promise<GlacierData | null> {
+  if (sql) {
+    try {
+      const result = await sql`SELECT * FROM glaciers WHERE id = ${id}`
+      return (result[0] as GlacierData) || null
+    } catch (error) {
+      console.warn("Database not available, using mock data:", error)
+    }
   }
+  return mockGlaciers.find((g) => g.id === id) || null
+}
+
+export async function getAnalysisById(id: string): Promise<AnalysisData | null> {
+  if (sql) {
+    try {
+      const result = await sql`SELECT * FROM analyses WHERE id = ${id}`
+      return (result[0] as AnalysisData) || null
+    } catch (error) {
+      console.warn("Database not available, using mock data:", error)
+    }
+  }
+  return mockAnalyses.find((a) => a.id === id) || null
+}
+
+export async function getAnalysesByGlacierId(glacierId: string): Promise<AnalysisData[]> {
+  if (sql) {
+    try {
+      const result = await sql`SELECT * FROM analyses WHERE glacier_id = ${glacierId} ORDER BY analysis_date DESC`
+      return result as AnalysisData[]
+    } catch (error) {
+      console.warn("Database not available, using mock data:", error)
+    }
+  }
+  return mockAnalyses.filter((a) => a.glacierId === glacierId)
 }
