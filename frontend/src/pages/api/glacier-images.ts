@@ -1,134 +1,150 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 
-interface GlacierImage {
-  id: string
-  glacierName: string
-  uploadDate: string
-  status: "completed" | "processing" | "pending" | "failed"
-  analysisId: string | null
-  imageUrl: string
-  thumbnailUrl: string
-  fileSize: number
-  dimensions: { width: number; height: number }
-  metadata: {
-    captureDate?: string
-    location?: { lat: number; lng: number }
-    altitude?: number
-    weather?: string
-  }
-}
-
-const mockGlacierImages: GlacierImage[] = [
+// Mock glacier images data for testing
+const mockGlacierImages = [
   {
     id: "img-1",
-    glacierName: "Franz Josef Glacier",
-    uploadDate: "2024-01-15T10:30:00Z",
-    status: "completed",
-    analysisId: "mock-1",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    thumbnailUrl: "/placeholder.svg?height=150&width=200",
-    fileSize: 2048576,
-    dimensions: { width: 1920, height: 1080 },
-    metadata: {
-      captureDate: "2024-01-14",
-      location: { lat: -43.4668, lng: 170.1926 },
-      altitude: 300,
-      weather: "Clear",
+    glacier_id: "franz-josef",
+    glacier_name: "Franz Josef Glacier",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "completed",
+    uploaded_at: "2024-01-15T10:30:00Z",
+    processed_at: "2024-01-15T10:45:00Z",
+    analysis_results: {
+      ice_volume_km3: 2.8,
+      surface_area_km2: 32.4,
+      melt_rate_mm_year: 1250,
+      confidence_score: 0.92,
+      health_score: 3.2,
+      risk_level: "high",
     },
   },
   {
     id: "img-2",
-    glacierName: "Perito Moreno Glacier",
-    uploadDate: "2024-01-12T14:20:00Z",
-    status: "completed",
-    analysisId: "mock-2",
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    thumbnailUrl: "/placeholder.svg?height=150&width=200",
-    fileSize: 3145728,
-    dimensions: { width: 2048, height: 1536 },
-    metadata: {
-      captureDate: "2024-01-11",
-      location: { lat: -50.4648, lng: -73.0307 },
-      altitude: 200,
-      weather: "Partly Cloudy",
+    glacier_id: "perito-moreno",
+    glacier_name: "Perito Moreno Glacier",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "completed",
+    uploaded_at: "2024-01-14T14:20:00Z",
+    processed_at: "2024-01-14T14:35:00Z",
+    analysis_results: {
+      ice_volume_km3: 195.2,
+      surface_area_km2: 250.8,
+      melt_rate_mm_year: 420,
+      confidence_score: 0.95,
+      health_score: 7.8,
+      risk_level: "low",
     },
   },
   {
     id: "img-3",
-    glacierName: "Glacier Bay",
-    uploadDate: "2024-01-10T09:15:00Z",
-    status: "processing",
-    analysisId: null,
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    thumbnailUrl: "/placeholder.svg?height=150&width=200",
-    fileSize: 1572864,
-    dimensions: { width: 1600, height: 1200 },
-    metadata: {
-      captureDate: "2024-01-09",
-      location: { lat: 58.5, lng: -137.0 },
-      altitude: 150,
-      weather: "Overcast",
-    },
+    glacier_id: "glacier-bay",
+    glacier_name: "Glacier Bay",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "processing",
+    uploaded_at: "2024-01-16T09:15:00Z",
+    processed_at: null,
+    analysis_results: null,
   },
   {
     id: "img-4",
-    glacierName: "Vatnajökull",
-    uploadDate: "2024-01-08T16:45:00Z",
-    status: "pending",
-    analysisId: null,
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    thumbnailUrl: "/placeholder.svg?height=150&width=200",
-    fileSize: 4194304,
-    dimensions: { width: 2560, height: 1440 },
-    metadata: {
-      captureDate: "2024-01-07",
-      location: { lat: 64.4, lng: -17.0 },
-      altitude: 500,
-      weather: "Snow",
-    },
+    glacier_id: "vatnajokull",
+    glacier_name: "Vatnajökull",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "pending",
+    uploaded_at: "2024-01-16T11:45:00Z",
+    processed_at: null,
+    analysis_results: null,
   },
   {
     id: "img-5",
-    glacierName: "Mendenhall Glacier",
-    uploadDate: "2024-01-05T11:30:00Z",
-    status: "failed",
-    analysisId: null,
-    imageUrl: "/placeholder.svg?height=400&width=600",
-    thumbnailUrl: "/placeholder.svg?height=150&width=200",
-    fileSize: 2621440,
-    dimensions: { width: 1800, height: 1200 },
-    metadata: {
-      captureDate: "2024-01-04",
-      location: { lat: 58.4186, lng: -134.5853 },
-      altitude: 100,
-      weather: "Rain",
+    glacier_id: "columbia",
+    glacier_name: "Columbia Glacier",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "failed",
+    uploaded_at: "2024-01-15T16:20:00Z",
+    processed_at: "2024-01-15T16:25:00Z",
+    analysis_results: null,
+  },
+  {
+    id: "img-6",
+    glacier_id: "mendenhall",
+    glacier_name: "Mendenhall Glacier",
+    image_url: "/placeholder.svg?height=200&width=300",
+    analysis_status: "completed",
+    uploaded_at: "2024-01-13T13:10:00Z",
+    processed_at: "2024-01-13T13:25:00Z",
+    analysis_results: {
+      ice_volume_km3: 1.2,
+      surface_area_km2: 15.8,
+      melt_rate_mm_year: 890,
+      confidence_score: 0.87,
+      health_score: 4.5,
+      risk_level: "medium",
     },
   },
 ]
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
-    const { status, limit = "10", offset = "0" } = req.query
+    const { status, glacier_id, page = "1", limit = "10" } = req.query
 
-    let filteredImages = mockGlacierImages
+    let filteredImages = [...mockGlacierImages]
 
-    // Filter by status if provided
+    // Filter by status
     if (status && status !== "all") {
-      filteredImages = filteredImages.filter((img) => img.status === status)
+      filteredImages = filteredImages.filter((img) => img.analysis_status === status)
     }
 
-    // Apply pagination
+    // Filter by glacier_id
+    if (glacier_id) {
+      filteredImages = filteredImages.filter((img) => img.glacier_id === glacier_id)
+    }
+
+    // Pagination
+    const pageNum = Number.parseInt(page as string)
     const limitNum = Number.parseInt(limit as string)
-    const offsetNum = Number.parseInt(offset as string)
-    const paginatedImages = filteredImages.slice(offsetNum, offsetNum + limitNum)
+    const startIndex = (pageNum - 1) * limitNum
+    const endIndex = startIndex + limitNum
+
+    const paginatedImages = filteredImages.slice(startIndex, endIndex)
 
     return res.status(200).json({
       images: paginatedImages,
-      total: filteredImages.length,
-      hasMore: offsetNum + limitNum < filteredImages.length,
+      pagination: {
+        current_page: pageNum,
+        total_pages: Math.ceil(filteredImages.length / limitNum),
+        total_items: filteredImages.length,
+        items_per_page: limitNum,
+      },
+      stats: {
+        total: mockGlacierImages.length,
+        completed: mockGlacierImages.filter((img) => img.analysis_status === "completed").length,
+        processing: mockGlacierImages.filter((img) => img.analysis_status === "processing").length,
+        pending: mockGlacierImages.filter((img) => img.analysis_status === "pending").length,
+        failed: mockGlacierImages.filter((img) => img.analysis_status === "failed").length,
+      },
     })
   }
 
-  res.setHeader("Allow", ["GET"])
+  if (req.method === "POST") {
+    // Mock creating a new glacier image
+    const { glacier_id, image_url } = req.body
+
+    const newImage = {
+      id: `img-${Date.now()}`,
+      glacier_id,
+      glacier_name: `Glacier ${glacier_id}`,
+      image_url,
+      analysis_status: "pending" as const,
+      uploaded_at: new Date().toISOString(),
+      processed_at: null,
+      analysis_results: null,
+    }
+
+    return res.status(201).json(newImage)
+  }
+
+  res.setHeader("Allow", ["GET", "POST"])
   res.status(405).end(`Method ${req.method} Not Allowed`)
 }

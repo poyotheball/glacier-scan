@@ -2,32 +2,71 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { CheckCircle, Clock, AlertCircle, XCircle, Eye, Download } from "lucide-react"
 
-interface GlacierImage {
+interface AnalysisResult {
   id: string
-  glacierName: string
-  uploadDate: string
-  status: "completed" | "processing" | "pending" | "failed"
-  analysisId: string | null
-  imageUrl: string
-  thumbnailUrl: string
+  glacier_id: string
+  glacier_name: string
+  image_url: string
+  analysis_status: "completed" | "processing" | "pending" | "failed"
+  uploaded_at: string
+  processed_at?: string | null
+  analysis_results?: {
+    ice_volume_km3: number
+    surface_area_km2: number
+    melt_rate_mm_year: number
+    confidence_score: number
+    health_score: number
+    risk_level: "low" | "medium" | "high" | "critical"
+  } | null
+}
+
+interface ApiResponse {
+  images: AnalysisResult[]
+  pagination: {
+    current_page: number
+    total_pages: number
+    total_items: number
+    items_per_page: number
+  }
+  stats: {
+    total: number
+    completed: number
+    processing: number
+    pending: number
+    failed: number
+  }
 }
 
 export default function AnalysisResults() {
-  const [images, setImages] = useState<GlacierImage[]>([])
+  const [results, setResults] = useState<AnalysisResult[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    processing: 0,
+    pending: 0,
+    failed: 0,
+  })
 
   useEffect(() => {
-    fetchImages()
+    fetchResults()
   }, [])
 
-  const fetchImages = async () => {
+  const fetchResults = async () => {
     try {
-      const response = await fetch("/api/glacier-images?limit=6")
-      if (!response.ok) throw new Error("Failed to fetch images")
-      const data = await response.json()
-      setImages(data.images)
+      setLoading(true)
+      const response = await fetch("/api/glacier-images")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch analysis results")
+      }
+
+      const data: ApiResponse = await response.json()
+      setResults(data.images)
+      setStats(data.stats)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
@@ -35,80 +74,74 @@ export default function AnalysisResults() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusIcon = (status: AnalysisResult["analysis_status"]) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800"
+        return <CheckCircle className="h-5 w-5 text-green-500" />
       case "processing":
-        return "bg-blue-100 text-blue-800"
+        return <Clock className="h-5 w-5 text-blue-500 animate-spin" />
       case "pending":
-        return "bg-yellow-100 text-yellow-800"
+        return <Clock className="h-5 w-5 text-yellow-500" />
       case "failed":
+        return <XCircle className="h-5 w-5 text-red-500" />
+      default:
+        return <AlertCircle className="h-5 w-5 text-gray-500" />
+    }
+  }
+
+  const getStatusText = (status: AnalysisResult["analysis_status"]) => {
+    switch (status) {
+      case "completed":
+        return "Completed"
+      case "processing":
+        return "Processing"
+      case "pending":
+        return "Pending"
+      case "failed":
+        return "Failed"
+      default:
+        return "Unknown"
+    }
+  }
+
+  const getRiskLevelColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case "low":
+        return "bg-green-100 text-green-800"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800"
+      case "high":
+        return "bg-orange-100 text-orange-800"
+      case "critical":
         return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )
-      case "processing":
-        return (
-          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        )
-      case "pending":
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )
-      case "failed":
-        return (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )
-      default:
-        return null
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Analysis Results</h3>
-        <div className="animate-pulse space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Analysis Results</h2>
+        <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gray-200 rounded"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            <div key={i} className="animate-pulse">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
             </div>
           ))}
@@ -120,88 +153,118 @@ export default function AnalysisResults() {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Analysis Results</h3>
-        <div className="text-red-600 text-center py-4">Error loading results: {error}</div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Analysis Results</h2>
+        <div className="text-center py-8">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchResults}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Analysis Results</h3>
-          <Link href="/analysis" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-            View All
-          </Link>
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Analysis Results</h2>
+          <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <span className="flex items-center">
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              {stats.completed} Completed
+            </span>
+            <span className="flex items-center">
+              <Clock className="h-4 w-4 text-blue-500 mr-1" />
+              {stats.processing} Processing
+            </span>
+            <span className="flex items-center">
+              <Clock className="h-4 w-4 text-yellow-500 mr-1" />
+              {stats.pending} Pending
+            </span>
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-4">
-          {images.map((image) => (
-            <div
-              key={image.id}
-              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center space-x-4">
-                <img
-                  src={image.thumbnailUrl || "/placeholder.svg"}
-                  alt={image.glacierName}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-                <div>
-                  <h4 className="font-medium text-gray-900">{image.glacierName}</h4>
-                  <p className="text-sm text-gray-500">Uploaded {new Date(image.uploadDate).toLocaleDateString()}</p>
-                  <div
-                    className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(image.status)}`}
-                  >
-                    {getStatusIcon(image.status)}
-                    <span className="capitalize">{image.status}</span>
+      <div className="p-6">
+        {results.length === 0 ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No analysis results found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {results.map((result) => (
+              <div key={result.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start space-x-4">
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={result.image_url || "/placeholder.svg"}
+                      alt={result.glacier_name}
+                      className="w-16 h-16 object-cover rounded-lg bg-gray-100"
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">{result.glacier_name}</h3>
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(result.analysis_status)}
+                        <span className="text-sm text-gray-600">{getStatusText(result.analysis_status)}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-2">Uploaded: {formatDate(result.uploaded_at)}</p>
+
+                    {result.analysis_results && (
+                      <div className="flex items-center space-x-4 mb-3">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRiskLevelColor(result.analysis_results.risk_level)}`}
+                        >
+                          {result.analysis_results.risk_level.toUpperCase()} RISK
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          Health Score: {result.analysis_results.health_score}/10
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          Confidence: {Math.round(result.analysis_results.confidence_score * 100)}%
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-3">
+                      {result.analysis_status === "completed" && (
+                        <>
+                          <Link
+                            href={`/analysis/${result.id}`}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Analysis
+                          </Link>
+                          <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <Download className="h-3 w-3 mr-1" />
+                            Export
+                          </button>
+                        </>
+                      )}
+                      {result.analysis_status === "failed" && (
+                        <button className="inline-flex items-center px-3 py-1.5 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-red-50 hover:bg-red-100 transition-colors">
+                          Retry Analysis
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center space-x-2">
-                {image.status === "completed" && image.analysisId && (
-                  <Link
-                    href={`/analysis/${image.analysisId}`}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                  >
-                    View Analysis
-                  </Link>
-                )}
-                {image.status === "failed" && (
-                  <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    Retry
-                  </button>
-                )}
-                {(image.status === "processing" || image.status === "pending") && (
-                  <span className="text-sm text-gray-500">Processing...</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {images.length === 0 && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            <h4 className="text-lg font-medium text-gray-900 mb-2">No analysis results yet</h4>
-            <p className="text-gray-500 mb-4">Upload glacier images to start analyzing</p>
-            <Link
-              href="/upload"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Upload Images
-            </Link>
+            ))}
           </div>
         )}
       </div>
