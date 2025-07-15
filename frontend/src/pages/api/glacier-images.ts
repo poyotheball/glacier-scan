@@ -1,131 +1,134 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 
-// Mock glacier images data
-const mockGlacierImages = [
+interface GlacierImage {
+  id: string
+  glacierName: string
+  uploadDate: string
+  status: "completed" | "processing" | "pending" | "failed"
+  analysisId: string | null
+  imageUrl: string
+  thumbnailUrl: string
+  fileSize: number
+  dimensions: { width: number; height: number }
+  metadata: {
+    captureDate?: string
+    location?: { lat: number; lng: number }
+    altitude?: number
+    weather?: string
+  }
+}
+
+const mockGlacierImages: GlacierImage[] = [
   {
-    id: "mock-1",
+    id: "img-1",
     glacierName: "Franz Josef Glacier",
-    location: "New Zealand",
     uploadDate: "2024-01-15T10:30:00Z",
     status: "completed",
-    confidence: 0.92,
-    healthScore: 3.2,
-    riskLevel: "high",
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
+    analysisId: "mock-1",
+    imageUrl: "/placeholder.svg?height=400&width=600",
+    thumbnailUrl: "/placeholder.svg?height=150&width=200",
+    fileSize: 2048576,
+    dimensions: { width: 1920, height: 1080 },
+    metadata: {
+      captureDate: "2024-01-14",
+      location: { lat: -43.4668, lng: 170.1926 },
+      altitude: 300,
+      weather: "Clear",
+    },
   },
   {
-    id: "mock-2",
+    id: "img-2",
     glacierName: "Perito Moreno Glacier",
-    location: "Argentina",
-    uploadDate: "2024-01-14T15:45:00Z",
-    status: "completed",
-    confidence: 0.95,
-    healthScore: 7.8,
-    riskLevel: "low",
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
-  },
-  {
-    id: "mock-3",
-    glacierName: "Glacier Bay",
-    location: "Alaska, USA",
-    uploadDate: "2024-01-13T09:15:00Z",
-    status: "processing",
-    confidence: null,
-    healthScore: null,
-    riskLevel: null,
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
-  },
-  {
-    id: "mock-4",
-    glacierName: "Vatnajökull",
-    location: "Iceland",
     uploadDate: "2024-01-12T14:20:00Z",
-    status: "pending",
-    confidence: null,
-    healthScore: null,
-    riskLevel: null,
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
-  },
-  {
-    id: "mock-5",
-    glacierName: "Athabasca Glacier",
-    location: "Canada",
-    uploadDate: "2024-01-11T11:00:00Z",
-    status: "failed",
-    confidence: null,
-    healthScore: null,
-    riskLevel: null,
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
-    error: "Image quality too low for analysis",
-  },
-  {
-    id: "mock-6",
-    glacierName: "Mer de Glace",
-    location: "France",
-    uploadDate: "2024-01-10T16:30:00Z",
     status: "completed",
-    confidence: 0.88,
-    healthScore: 4.5,
-    riskLevel: "medium",
-    imageUrl: "/placeholder.jpg",
-    thumbnailUrl: "/placeholder.jpg",
+    analysisId: "mock-2",
+    imageUrl: "/placeholder.svg?height=400&width=600",
+    thumbnailUrl: "/placeholder.svg?height=150&width=200",
+    fileSize: 3145728,
+    dimensions: { width: 2048, height: 1536 },
+    metadata: {
+      captureDate: "2024-01-11",
+      location: { lat: -50.4648, lng: -73.0307 },
+      altitude: 200,
+      weather: "Partly Cloudy",
+    },
+  },
+  {
+    id: "img-3",
+    glacierName: "Glacier Bay",
+    uploadDate: "2024-01-10T09:15:00Z",
+    status: "processing",
+    analysisId: null,
+    imageUrl: "/placeholder.svg?height=400&width=600",
+    thumbnailUrl: "/placeholder.svg?height=150&width=200",
+    fileSize: 1572864,
+    dimensions: { width: 1600, height: 1200 },
+    metadata: {
+      captureDate: "2024-01-09",
+      location: { lat: 58.5, lng: -137.0 },
+      altitude: 150,
+      weather: "Overcast",
+    },
+  },
+  {
+    id: "img-4",
+    glacierName: "Vatnajökull",
+    uploadDate: "2024-01-08T16:45:00Z",
+    status: "pending",
+    analysisId: null,
+    imageUrl: "/placeholder.svg?height=400&width=600",
+    thumbnailUrl: "/placeholder.svg?height=150&width=200",
+    fileSize: 4194304,
+    dimensions: { width: 2560, height: 1440 },
+    metadata: {
+      captureDate: "2024-01-07",
+      location: { lat: 64.4, lng: -17.0 },
+      altitude: 500,
+      weather: "Snow",
+    },
+  },
+  {
+    id: "img-5",
+    glacierName: "Mendenhall Glacier",
+    uploadDate: "2024-01-05T11:30:00Z",
+    status: "failed",
+    analysisId: null,
+    imageUrl: "/placeholder.svg?height=400&width=600",
+    thumbnailUrl: "/placeholder.svg?height=150&width=200",
+    fileSize: 2621440,
+    dimensions: { width: 1800, height: 1200 },
+    metadata: {
+      captureDate: "2024-01-04",
+      location: { lat: 58.4186, lng: -134.5853 },
+      altitude: 100,
+      weather: "Rain",
+    },
   },
 ]
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
-    const { page = "1", limit = "10", status } = req.query
+    const { status, limit = "10", offset = "0" } = req.query
 
     let filteredImages = mockGlacierImages
 
     // Filter by status if provided
     if (status && status !== "all") {
-      filteredImages = mockGlacierImages.filter((img) => img.status === status)
+      filteredImages = filteredImages.filter((img) => img.status === status)
     }
 
-    // Pagination
-    const pageNum = Number.parseInt(page as string)
+    // Apply pagination
     const limitNum = Number.parseInt(limit as string)
-    const startIndex = (pageNum - 1) * limitNum
-    const endIndex = startIndex + limitNum
-
-    const paginatedImages = filteredImages.slice(startIndex, endIndex)
+    const offsetNum = Number.parseInt(offset as string)
+    const paginatedImages = filteredImages.slice(offsetNum, offsetNum + limitNum)
 
     return res.status(200).json({
       images: paginatedImages,
-      pagination: {
-        currentPage: pageNum,
-        totalPages: Math.ceil(filteredImages.length / limitNum),
-        totalItems: filteredImages.length,
-        hasNext: endIndex < filteredImages.length,
-        hasPrev: pageNum > 1,
-      },
+      total: filteredImages.length,
+      hasMore: offsetNum + limitNum < filteredImages.length,
     })
   }
 
-  if (req.method === "POST") {
-    // Mock creating a new glacier image analysis
-    const newImage = {
-      id: `mock-${Date.now()}`,
-      glacierName: req.body.glacierName || "Unknown Glacier",
-      location: req.body.location || "Unknown Location",
-      uploadDate: new Date().toISOString(),
-      status: "pending",
-      confidence: null,
-      healthScore: null,
-      riskLevel: null,
-      imageUrl: req.body.imageUrl || "/placeholder.jpg",
-      thumbnailUrl: req.body.thumbnailUrl || "/placeholder.jpg",
-    }
-
-    return res.status(201).json(newImage)
-  }
-
-  res.setHeader("Allow", ["GET", "POST"])
+  res.setHeader("Allow", ["GET"])
   res.status(405).end(`Method ${req.method} Not Allowed`)
 }
