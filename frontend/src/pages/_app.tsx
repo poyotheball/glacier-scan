@@ -1,14 +1,13 @@
 import type { AppProps } from "next/app"
-import { appWithTranslation } from "next-i18next"
-import Layout from "@/components/layout/Layout"
+import { Inter } from "next/font/google"
 import "../styles/globals.css"
 
-function App({ Component, pageProps }: AppProps) {
+const inter = Inter({ subsets: ["latin"] })
+
+export default function App({ Component, pageProps }: AppProps) {
   return (
-    <Layout>
+    <div className={inter.className}>
       <Component {...pageProps} />
-    </Layout>
+    </div>
   )
 }
-
-export default appWithTranslation(App)
