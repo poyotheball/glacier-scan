@@ -7,7 +7,7 @@
     "build": "cd frontend && npm run build",
     "db-status": "npm run verify-db",
     "db:migrate": "psql $DATABASE_URL -f supabase/migrations/001_initial_schema.sql && psql $DATABASE_URL -f supabase/migrations/002_seed_data.sql",
-    "dev": "cd frontend && npm run dev",
+    "dev": "npm run dev:frontend",
     "dev:ai": "cd backend/fastapi-ai && python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
     "dev:backend": "cd backend/nestjs-api && npm run start:dev",
     "dev:frontend": "cd frontend && npm run dev",
