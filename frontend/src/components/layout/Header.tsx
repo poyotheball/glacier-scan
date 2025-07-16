@@ -1,13 +1,14 @@
 "use client"
 
-import React from "react"
 import Link from "next/link"
-import { Mountain, Menu, X } from "lucide-react"
+import { useState } from "react"
+import { Menu, X, Mountain } from "lucide-react"
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const navigation = [
+    { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Map", href: "/map" },
     { name: "Trends", href: "/trends" },
@@ -20,7 +21,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <Mountain className="h-8 w-8 text-blue-600" />
+            <Mountain className="h-8 w-8 text-glacier-600" />
             <span className="text-xl font-bold text-gray-900">GlacierScan</span>
           </Link>
 
@@ -30,7 +31,7 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
               >
                 {item.name}
               </Link>
@@ -40,7 +41,7 @@ export default function Header() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-100"
+            className="md:hidden p-2 rounded-md text-gray-600 hover:text-glacier-600 hover:bg-gray-100"
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -54,7 +55,7 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

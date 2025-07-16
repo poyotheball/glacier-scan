@@ -1,23 +1,28 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  swcMinify: true,
+  images: {
+    domains: ["localhost", "example.com"],
+    unoptimized: true,
+  },
+  experimental: {
+    appDir: false,
+  },
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    }
+    return config
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
-  },
-  images: {
-    domains: ["localhost"],
-    unoptimized: true,
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/api/ai/:path*",
-        destination: "http://localhost:8000/:path*",
-      },
-    ]
   },
 }
 

@@ -1,217 +1,249 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { GetStaticProps } from "next"
-import { serverSideTranslations } from "next-i18next/serverSideTranslations"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import AlertsPanel from "@/components/dashboard/AlertsPanel"
-import AnalysisResults from "@/components/dashboard/AnalysisResults"
-import MetricsCard from "@/components/dashboard/MetricsCard"
-import { Activity, Database, ImageIcon, Mountain } from "lucide-react"
+import Link from "next/link"
+import { AlertTriangle, CheckCircle, Clock, TrendingDown, TrendingUp, Activity } from "lucide-react"
 
-interface DashboardStats {
-  totalGlaciers: number
-  totalMeasurements: number
-  totalImages: number
-  activeAlerts: number
+interface Glacier {
+  id: string
+  name: string
+  location: string
+  status: "healthy" | "warning" | "critical"
+  lastAnalyzed: string
+  healthScore: number
+  trend: "stable" | "declining" | "improving"
+  area: number
+  volume: number
 }
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalGlaciers: 0,
-    totalMeasurements: 0,
-    totalImages: 0,
-    activeAlerts: 0,
-  })
+export default function Dashboard() {
+  const [glaciers, setGlaciers] = useState<Glacier[]>([])
   const [loading, setLoading] = useState(true)
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "testing">("testing")
 
   useEffect(() => {
-    loadDashboardData()
-    testDatabaseConnection()
+    // Mock data for development
+    const mockData: Glacier[] = [
+      {
+        id: "mock-1",
+        name: "Franz Josef Glacier",
+        location: "New Zealand",
+        status: "healthy",
+        lastAnalyzed: "2024-01-15T10:30:00Z",
+        healthScore: 85,
+        trend: "stable",
+        area: 32.5,
+        volume: 4.2,
+      },
+      {
+        id: "mock-2",
+        name: "Perito Moreno Glacier",
+        location: "Argentina",
+        status: "warning",
+        lastAnalyzed: "2024-01-14T14:20:00Z",
+        healthScore: 72,
+        trend: "declining",
+        area: 250.0,
+        volume: 28.5,
+      },
+      {
+        id: "mock-3",
+        name: "Athabasca Glacier",
+        location: "Canada",
+        status: "critical",
+        lastAnalyzed: "2024-01-13T09:15:00Z",
+        healthScore: 45,
+        trend: "declining",
+        area: 6.0,
+        volume: 0.8,
+      },
+    ]
+
+    setTimeout(() => {
+      setGlaciers(mockData)
+      setLoading(false)
+    }, 1000)
   }, [])
 
-  const testDatabaseConnection = async () => {
-    try {
-      const response = await fetch("/api/test-db")
-      const data = await response.json()
-
-      if (data.success) {
-        setConnectionStatus("connected")
-        if (data.stats) {
-          setStats(data.stats)
-        }
-      } else {
-        setConnectionStatus("disconnected")
-      }
-    } catch (error) {
-      console.error("Database connection test failed:", error)
-      setConnectionStatus("disconnected")
-    }
-  }
-
-  const loadDashboardData = async () => {
-    try {
-      // Load glaciers data
-      const glaciersResponse = await fetch("/api/glaciers")
-      const glaciersData = await glaciersResponse.json()
-
-      if (glaciersResponse.ok && glaciersData.glaciers) {
-        const glaciers = glaciersData.glaciers
-        const totalMeasurements = glaciers.reduce(
-          (sum: number, glacier: any) => sum + (glacier.measurements?.length || 0),
-          0,
-        )
-        const totalImages = glaciers.reduce((sum: number, glacier: any) => sum + (glacier.images?.length || 0), 0)
-
-        setStats((prev) => ({
-          ...prev,
-          totalGlaciers: glaciers.length,
-          totalMeasurements,
-          totalImages,
-        }))
-      }
-
-      // Load alerts data
-      const alertsResponse = await fetch("/api/alerts")
-      const alertsData = await alertsResponse.json()
-
-      if (alertsResponse.ok && alertsData.alerts) {
-        setStats((prev) => ({
-          ...prev,
-          activeAlerts: alertsData.alerts.length,
-        }))
-      }
-    } catch (error) {
-      console.error("Error loading dashboard data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getConnectionBadge = () => {
-    switch (connectionStatus) {
-      case "connected":
-        return <Badge className="bg-green-100 text-green-800">Connected</Badge>
-      case "disconnected":
-        return <Badge className="bg-red-100 text-red-800">Disconnected</Badge>
-      case "testing":
-        return <Badge className="bg-yellow-100 text-yellow-800">Testing...</Badge>
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "healthy":
+        return <CheckCircle className="h-5 w-5 text-green-500" />
+      case "warning":
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+      case "critical":
+        return <AlertTriangle className="h-5 w-5 text-red-500" />
       default:
-        return <Badge variant="outline">Unknown</Badge>
+        return <Clock className="h-5 w-5 text-gray-500" />
     }
+  }
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "improving":
+        return <TrendingUp className="h-4 w-4 text-green-500" />
+      case "declining":
+        return <TrendingDown className="h-4 w-4 text-red-500" />
+      default:
+        return <Activity className="h-4 w-4 text-blue-500" />
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "healthy":
+        return "status-healthy"
+      case "warning":
+        return "status-warning"
+      case "critical":
+        return "status-critical"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200"
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold text-gray-900">Glacier Dashboard</h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glacier-card p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900">Glacier Dashboard</h1>
+        <div className="text-sm text-gray-500">Last updated: {new Date().toLocaleString()}</div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="metric-card">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Glacier Analysis Dashboard</h1>
-              <p className="text-gray-600 mt-2">Monitor glacier changes and analysis results</p>
+              <p className="text-sm font-medium text-glacier-600">Total Glaciers</p>
+              <p className="text-2xl font-bold text-gray-900">{glaciers.length}</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                <span className="text-sm text-gray-600">Database:</span>
-                {getConnectionBadge()}
-              </div>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                <Activity className="w-4 h-4 mr-1" />
-                Live Data
-              </Badge>
+            <Activity className="h-8 w-8 text-glacier-500" />
+          </div>
+        </div>
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-600">Healthy</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {glaciers.filter((g) => g.status === "healthy").length}
+              </p>
             </div>
+            <CheckCircle className="h-8 w-8 text-green-500" />
+          </div>
+        </div>
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-yellow-600">Warning</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {glaciers.filter((g) => g.status === "warning").length}
+              </p>
+            </div>
+            <AlertTriangle className="h-8 w-8 text-yellow-500" />
+          </div>
+        </div>
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-600">Critical</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {glaciers.filter((g) => g.status === "critical").length}
+              </p>
+            </div>
+            <AlertTriangle className="h-8 w-8 text-red-500" />
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Overview */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <MetricsCard
-            title="Total Glaciers"
-            value={stats.totalGlaciers}
-            icon={<Mountain className="w-8 h-8 text-blue-500" />}
-            loading={loading}
-            description="Monitored glaciers"
-          />
-          <MetricsCard
-            title="Measurements"
-            value={stats.totalMeasurements}
-            icon={<Activity className="w-8 h-8 text-green-500" />}
-            loading={loading}
-            description="Data points collected"
-          />
-          <MetricsCard
-            title="Images Analyzed"
-            value={stats.totalImages}
-            icon={<ImageIcon className="w-8 h-8 text-purple-500" />}
-            loading={loading}
-            description="Satellite images processed"
-          />
-          <MetricsCard
-            title="Active Alerts"
-            value={stats.activeAlerts}
-            icon={<Activity className="w-8 h-8 text-red-500" />}
-            loading={loading}
-            description="Requiring attention"
-            trend={stats.activeAlerts > 0 ? "up" : "stable"}
-          />
-        </div>
-
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - Analysis Results */}
-          <div className="lg:col-span-2">
-            <AnalysisResults />
-          </div>
-
-          {/* Right Column - Alerts */}
-          <div>
-            <AlertsPanel />
-          </div>
-        </div>
-
-        {/* System Status */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5" />
-              System Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
+      {/* Glacier Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {glaciers.map((glacier) => (
+          <div key={glacier.id} className="glacier-card p-6">
+            <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Database Connection</h4>
-                <div className="flex items-center gap-2">
-                  {getConnectionBadge()}
-                  <span className="text-sm text-gray-600">
-                    {connectionStatus === "connected"
-                      ? "PostgreSQL connected successfully"
-                      : connectionStatus === "disconnected"
-                        ? "Unable to connect to database"
-                        : "Testing database connection..."}
-                  </span>
+                <h3 className="text-lg font-semibold text-gray-900">{glacier.name}</h3>
+                <p className="text-sm text-gray-600">{glacier.location}</p>
+              </div>
+              {getStatusIcon(glacier.status)}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Health Score</span>
+                <span className="text-sm font-medium">{glacier.healthScore}%</span>
+              </div>
+
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full ${
+                    glacier.healthScore >= 80
+                      ? "bg-green-500"
+                      : glacier.healthScore >= 60
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                  style={{ width: `${glacier.healthScore}%` }}
+                ></div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Trend</span>
+                <div className="flex items-center space-x-1">
+                  {getTrendIcon(glacier.trend)}
+                  <span className="text-sm font-medium capitalize">{glacier.trend}</span>
                 </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Last Updated</h4>
-                <p className="text-sm text-gray-600">{new Date().toLocaleString()}</p>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Area</span>
+                <span className="text-sm font-medium">{glacier.area} km²</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Volume</span>
+                <span className="text-sm font-medium">{glacier.volume} km³</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(glacier.status)}`}
+                >
+                  {glacier.status.charAt(0).toUpperCase() + glacier.status.slice(1)}
+                </span>
+                <Link
+                  href={`/analysis/${glacier.id}`}
+                  className="text-glacier-600 hover:text-glacier-700 text-sm font-medium"
+                >
+                  View Analysis →
+                </Link>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Last analyzed: {new Date(glacier.lastAnalyzed).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
-
-export const getStaticProps: GetStaticProps = async ({ locale }) => ({
-  props: {
-    ...(await serverSideTranslations(locale ?? "en", ["common"])),
-  },
-})
