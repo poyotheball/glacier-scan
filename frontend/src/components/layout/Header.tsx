@@ -2,18 +2,15 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/router"
 import { Menu, X, Mountain } from "lucide-react"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const router = useRouter()
 
   const navigation = [
-    { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Upload", href: "/upload" },
     { name: "Map", href: "/map" },
+    { name: "Upload", href: "/upload" },
     { name: "Trends", href: "/trends" },
   ]
 
@@ -33,11 +30,7 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                  router.pathname === item.href
-                    ? "text-glacier-600 border-b-2 border-glacier-600"
-                    : "text-gray-700 hover:text-glacier-600"
-                }`}
+                className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
               >
                 {item.name}
               </Link>
@@ -46,10 +39,7 @@ export default function Header() {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-md text-gray-700 hover:text-glacier-600 hover:bg-gray-100"
-            >
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 hover:text-gray-900 p-2">
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
@@ -63,11 +53,7 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`px-3 py-2 text-base font-medium transition-colors duration-200 ${
-                    router.pathname === item.href
-                      ? "text-glacier-600 bg-glacier-50"
-                      : "text-gray-700 hover:text-glacier-600 hover:bg-gray-50"
-                  }`}
+                  className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
