@@ -6,9 +6,6 @@ const nextConfig = {
     domains: ["localhost", "example.com"],
     unoptimized: true,
   },
-  experimental: {
-    appDir: false,
-  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

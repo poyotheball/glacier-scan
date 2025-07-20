@@ -58,39 +58,35 @@
   }
 }
 
-/* Custom glacier-specific styles */
-.glacier-gradient {
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 50%, #0369a1 100%);
-}
-
+/* Glacier-specific styles */
 .glacier-card {
-  @apply bg-white rounded-lg shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300;
+  @apply bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300;
 }
 
-.glacier-button {
-  @apply bg-glacier-600 hover:bg-glacier-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
-}
-
-.glacier-input {
-  @apply border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-glacier-500 focus:border-transparent;
-}
-
-.status-healthy {
+.glacier-status-healthy {
   @apply bg-green-100 text-green-800 border-green-200;
 }
 
-.status-warning {
+.glacier-status-warning {
   @apply bg-yellow-100 text-yellow-800 border-yellow-200;
 }
 
-.status-critical {
+.glacier-status-critical {
   @apply bg-red-100 text-red-800 border-red-200;
 }
 
-.chart-container {
-  @apply bg-white p-6 rounded-lg shadow-sm border border-gray-200;
+.glacier-metric {
+  @apply text-2xl font-bold text-glacier-600;
 }
 
-.metric-card {
-  @apply bg-gradient-to-br from-glacier-50 to-glacier-100 p-4 rounded-lg border border-glacier-200;
+.glacier-trend-up {
+  @apply text-green-600;
+}
+
+.glacier-trend-down {
+  @apply text-red-600;
+}
+
+.glacier-trend-stable {
+  @apply text-gray-600;
 }

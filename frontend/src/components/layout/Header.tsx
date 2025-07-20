@@ -1,23 +1,25 @@
 "use client"
 
-import Link from "next/link"
 import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/router"
 import { Menu, X, Mountain } from "lucide-react"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const router = useRouter()
 
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Dashboard", href: "/dashboard" },
+    { name: "Upload", href: "/upload" },
     { name: "Map", href: "/map" },
     { name: "Trends", href: "/trends" },
-    { name: "Auth", href: "/auth" },
   ]
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
@@ -31,7 +33,11 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
+                className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                  router.pathname === item.href
+                    ? "text-glacier-600 border-b-2 border-glacier-600"
+                    : "text-gray-700 hover:text-glacier-600"
+                }`}
               >
                 {item.name}
               </Link>
@@ -39,12 +45,14 @@ export default function Header() {
           </nav>
 
           {/* Mobile menu button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-glacier-600 hover:bg-gray-100"
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-md text-gray-700 hover:text-glacier-600 hover:bg-gray-100"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation */}
@@ -55,7 +63,11 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="text-gray-600 hover:text-glacier-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
+                  className={`px-3 py-2 text-base font-medium transition-colors duration-200 ${
+                    router.pathname === item.href
+                      ? "text-glacier-600 bg-glacier-50"
+                      : "text-gray-700 hover:text-glacier-600 hover:bg-gray-50"
+                  }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

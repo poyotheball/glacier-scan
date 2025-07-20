@@ -1,117 +1,125 @@
-import { neon } from "@neondatabase/serverless"
+// Mock database for development
+export interface Glacier {
+  id: string
+  name: string
+  location: string
+  status: "healthy" | "warning" | "critical"
+  healthScore: number
+  area: number
+  thickness: number
+  velocity: number
+  temperature: number
+  lastUpdated: string
+  trend: "up" | "down" | "stable"
+  images: Array<{
+    url: string
+    caption: string
+    date: string
+  }>
+  recommendations: string[]
+}
 
-// Mock data for development
-export const mockGlaciers = [
+export const mockGlaciers: Glacier[] = [
   {
     id: "mock-1",
     name: "Franz Josef Glacier",
     location: "New Zealand",
-    status: "healthy",
-    lastAnalyzed: "2024-01-15T10:30:00Z",
+    status: "warning",
+    healthScore: 72,
     area: 32.5,
-    volume: 4.2,
-    thickness: 180,
-    velocity: 0.8,
-    temperature: -2.5,
-    healthScore: 85,
-    trend: "stable",
+    thickness: 285,
+    velocity: 1.2,
+    temperature: -2.1,
+    lastUpdated: "2024-01-15T10:30:00Z",
+    trend: "down",
     images: [
       {
-        id: 1,
         url: "/placeholder.jpg",
-        caption: "Franz Josef Glacier overview",
+        caption: "Franz Josef Glacier overview from helicopter",
         date: "2024-01-15",
-        type: "satellite",
       },
       {
-        id: 2,
         url: "/placeholder.jpg",
-        caption: "Terminus detail",
-        date: "2024-01-15",
-        type: "aerial",
+        caption: "Terminal face showing retreat",
+        date: "2024-01-10",
       },
     ],
-    historicalData: [
-      { date: "2020-01", area: 35.2, volume: 4.8, thickness: 195 },
-      { date: "2021-01", area: 34.1, volume: 4.6, thickness: 190 },
-      { date: "2022-01", area: 33.5, volume: 4.4, thickness: 185 },
-      { date: "2023-01", area: 32.8, volume: 4.3, thickness: 182 },
-      { date: "2024-01", area: 32.5, volume: 4.2, thickness: 180 },
-    ],
     recommendations: [
-      "Continue monitoring ice velocity changes",
-      "Increase observation frequency during summer months",
-      "Monitor terminus position for retreat indicators",
+      "Monitor retreat rate closely",
+      "Increase measurement frequency",
+      "Consider protective measures for downstream areas",
     ],
   },
   {
     id: "mock-2",
     name: "Perito Moreno Glacier",
     location: "Argentina",
-    status: "warning",
-    lastAnalyzed: "2024-01-14T14:20:00Z",
-    area: 250.0,
-    volume: 28.5,
-    thickness: 170,
+    status: "healthy",
+    healthScore: 89,
+    area: 250.8,
+    thickness: 558,
     velocity: 2.1,
-    temperature: -1.8,
-    healthScore: 72,
-    trend: "declining",
+    temperature: -3.8,
+    lastUpdated: "2024-01-14T14:20:00Z",
+    trend: "stable",
     images: [
       {
-        id: 3,
         url: "/placeholder.jpg",
         caption: "Perito Moreno calving front",
         date: "2024-01-14",
-        type: "ground",
+      },
+      {
+        url: "/placeholder.jpg",
+        caption: "Ice formation detail",
+        date: "2024-01-12",
       },
     ],
-    historicalData: [
-      { date: "2020-01", area: 258.5, volume: 30.2, thickness: 185 },
-      { date: "2021-01", area: 255.8, volume: 29.8, thickness: 180 },
-      { date: "2022-01", area: 253.2, volume: 29.2, thickness: 175 },
-      { date: "2023-01", area: 251.5, volume: 28.8, thickness: 172 },
-      { date: "2024-01", area: 250.0, volume: 28.5, thickness: 170 },
+    recommendations: [
+      "Continue regular monitoring",
+      "Maintain current observation schedule",
+      "Document calving events",
+    ],
+  },
+  {
+    id: "mock-3",
+    name: "Jakobshavn Glacier",
+    location: "Greenland",
+    status: "critical",
+    healthScore: 34,
+    area: 110.2,
+    thickness: 1200,
+    velocity: 17.5,
+    temperature: -1.2,
+    lastUpdated: "2024-01-13T09:15:00Z",
+    trend: "down",
+    images: [
+      {
+        url: "/placeholder.jpg",
+        caption: "Jakobshavn showing rapid retreat",
+        date: "2024-01-13",
+      },
+      {
+        url: "/placeholder.jpg",
+        caption: "Crevasse field indicating stress",
+        date: "2024-01-11",
+      },
     ],
     recommendations: [
-      "Investigate causes of accelerated retreat",
-      "Implement enhanced monitoring protocols",
-      "Consider climate impact assessment",
+      "Urgent: Implement emergency monitoring",
+      "Alert downstream communities",
+      "Coordinate with international research teams",
     ],
   },
 ]
 
-export async function getGlacierById(id: string) {
-  // For development, return mock data
-  return mockGlaciers.find((glacier) => glacier.id === id) || null
-}
-
-export async function getAllGlaciers() {
-  // For development, return mock data
+export async function getGlaciers(): Promise<Glacier[]> {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 100))
   return mockGlaciers
 }
 
-export async function getGlacierImages(glacierId: string) {
-  const glacier = await getGlacierById(glacierId)
-  return glacier?.images || []
-}
-
-// Database connection for production
-let sql: any = null
-
-if (process.env.DATABASE_URL) {
-  sql = neon(process.env.DATABASE_URL)
-}
-
-export async function testDatabaseConnection() {
-  if (!sql) {
-    return { success: false, message: "No database URL configured" }
-  }
-
-  try {
-    const result = await sql`SELECT NOW() as current_time`
-    return { success: true, message: "Database connected successfully", data: result }
-  } catch (error) {
-    return { success: false, message: "Database connection failed", error }
-  }
+export async function getGlacierById(id: string): Promise<Glacier | null> {
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  return mockGlaciers.find((glacier) => glacier.id === id) || null
 }

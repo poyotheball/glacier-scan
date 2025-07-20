@@ -2,247 +2,197 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { AlertTriangle, CheckCircle, Clock, TrendingDown, TrendingUp, Activity } from "lucide-react"
-
-interface Glacier {
-  id: string
-  name: string
-  location: string
-  status: "healthy" | "warning" | "critical"
-  lastAnalyzed: string
-  healthScore: number
-  trend: "stable" | "declining" | "improving"
-  area: number
-  volume: number
-}
+import { Activity, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react"
+import { getGlaciers, type Glacier } from "../lib/database"
 
 export default function Dashboard() {
   const [glaciers, setGlaciers] = useState<Glacier[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data for development
-    const mockData: Glacier[] = [
-      {
-        id: "mock-1",
-        name: "Franz Josef Glacier",
-        location: "New Zealand",
-        status: "healthy",
-        lastAnalyzed: "2024-01-15T10:30:00Z",
-        healthScore: 85,
-        trend: "stable",
-        area: 32.5,
-        volume: 4.2,
-      },
-      {
-        id: "mock-2",
-        name: "Perito Moreno Glacier",
-        location: "Argentina",
-        status: "warning",
-        lastAnalyzed: "2024-01-14T14:20:00Z",
-        healthScore: 72,
-        trend: "declining",
-        area: 250.0,
-        volume: 28.5,
-      },
-      {
-        id: "mock-3",
-        name: "Athabasca Glacier",
-        location: "Canada",
-        status: "critical",
-        lastAnalyzed: "2024-01-13T09:15:00Z",
-        healthScore: 45,
-        trend: "declining",
-        area: 6.0,
-        volume: 0.8,
-      },
-    ]
+    async function fetchGlaciers() {
+      try {
+        const data = await getGlaciers()
+        setGlaciers(data)
+      } catch (error) {
+        console.error("Error fetching glaciers:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    setTimeout(() => {
-      setGlaciers(mockData)
-      setLoading(false)
-    }, 1000)
+    fetchGlaciers()
   }, [])
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "healthy":
-        return <CheckCircle className="h-5 w-5 text-green-500" />
-      case "warning":
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
-      case "critical":
-        return <AlertTriangle className="h-5 w-5 text-red-500" />
-      default:
-        return <Clock className="h-5 w-5 text-gray-500" />
-    }
-  }
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case "improving":
-        return <TrendingUp className="h-4 w-4 text-green-500" />
-      case "declining":
-        return <TrendingDown className="h-4 w-4 text-red-500" />
-      default:
-        return <Activity className="h-4 w-4 text-blue-500" />
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "healthy":
-        return "status-healthy"
+        return "bg-green-100 text-green-800 border-green-200"
       case "warning":
-        return "status-warning"
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
       case "critical":
-        return "status-critical"
+        return "bg-red-100 text-red-800 border-red-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "up":
+        return <TrendingUp className="h-4 w-4 text-green-600" />
+      case "down":
+        return <TrendingDown className="h-4 w-4 text-red-600" />
+      case "stable":
+        return <Minus className="h-4 w-4 text-gray-600" />
+      default:
+        return <Minus className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const healthyCount = glaciers.filter((g) => g.status === "healthy").length
+  const warningCount = glaciers.filter((g) => g.status === "warning").length
+  const criticalCount = glaciers.filter((g) => g.status === "critical").length
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Glacier Dashboard</h1>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="glacier-card p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-            </div>
-          ))}
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Activity className="h-12 w-12 text-glacier-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading glacier data...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Glacier Dashboard</h1>
-        <div className="text-sm text-gray-500">Last updated: {new Date().toLocaleString()}</div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-glacier-600">Total Glaciers</p>
-              <p className="text-2xl font-bold text-gray-900">{glaciers.length}</p>
-            </div>
-            <Activity className="h-8 w-8 text-glacier-500" />
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Glacier Dashboard</h1>
+          <p className="text-gray-600">Monitor glacier health and track changes in real-time</p>
         </div>
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-600">Healthy</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {glaciers.filter((g) => g.status === "healthy").length}
-              </p>
-            </div>
-            <CheckCircle className="h-8 w-8 text-green-500" />
-          </div>
-        </div>
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-yellow-600">Warning</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {glaciers.filter((g) => g.status === "warning").length}
-              </p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-yellow-500" />
-          </div>
-        </div>
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-600">Critical</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {glaciers.filter((g) => g.status === "critical").length}
-              </p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-red-500" />
-          </div>
-        </div>
-      </div>
 
-      {/* Glacier Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {glaciers.map((glacier) => (
-          <div key={glacier.id} className="glacier-card p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{glacier.name}</h3>
-                <p className="text-sm text-gray-600">{glacier.location}</p>
-              </div>
-              {getStatusIcon(glacier.status)}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Health Score</span>
-                <span className="text-sm font-medium">{glacier.healthScore}%</span>
-              </div>
-
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${
-                    glacier.healthScore >= 80
-                      ? "bg-green-500"
-                      : glacier.healthScore >= 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                  style={{ width: `${glacier.healthScore}%` }}
-                ></div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Trend</span>
-                <div className="flex items-center space-x-1">
-                  {getTrendIcon(glacier.trend)}
-                  <span className="text-sm font-medium capitalize">{glacier.trend}</span>
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-glacier-100 rounded-full flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-glacier-600" />
                 </div>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Area</span>
-                <span className="text-sm font-medium">{glacier.area} km²</span>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Total Glaciers</p>
+                <p className="text-2xl font-semibold text-gray-900">{glaciers.length}</p>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Volume</span>
-                <span className="text-sm font-medium">{glacier.volume} km³</span>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(glacier.status)}`}
-                >
-                  {glacier.status.charAt(0).toUpperCase() + glacier.status.slice(1)}
-                </span>
-                <Link
-                  href={`/analysis/${glacier.id}`}
-                  className="text-glacier-600 hover:text-glacier-700 text-sm font-medium"
-                >
-                  View Analysis →
-                </Link>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Last analyzed: {new Date(glacier.lastAnalyzed).toLocaleDateString()}
-              </p>
             </div>
           </div>
-        ))}
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Healthy</p>
+                <p className="text-2xl font-semibold text-green-600">{healthyCount}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Activity className="h-5 w-5 text-yellow-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Warning</p>
+                <p className="text-2xl font-semibold text-yellow-600">{warningCount}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">Critical</p>
+                <p className="text-2xl font-semibold text-red-600">{criticalCount}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Glacier Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {glaciers.map((glacier) => (
+            <div key={glacier.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{glacier.name}</h3>
+                  <span
+                    className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(glacier.status)}`}
+                  >
+                    {glacier.status}
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-4">{glacier.location}</p>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Health Score</span>
+                    <div className="flex items-center">
+                      <span className="text-lg font-semibold text-gray-900">{glacier.healthScore}%</span>
+                      {getTrendIcon(glacier.trend)}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Area</span>
+                    <span className="text-sm font-medium text-gray-900">{glacier.area} km²</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Thickness</span>
+                    <span className="text-sm font-medium text-gray-900">{glacier.thickness}m</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">Velocity</span>
+                    <span className="text-sm font-medium text-gray-900">{glacier.velocity} m/day</span>
+                  </div>
+                </div>
+
+                <div className="flex space-x-3">
+                  <Link
+                    href={`/analysis/${glacier.id}`}
+                    className="flex-1 bg-glacier-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-glacier-700 transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Analysis
+                  </Link>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    Last updated: {new Date(glacier.lastUpdated).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
