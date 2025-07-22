@@ -32,8 +32,16 @@ services:
     build: ./backend/fastapi-ai
     ports:
       - "8000:8000"
+    environment:
+      PORT: 8000
+      DEBUG: "true"
+      MODEL_VERSION: "2.1.0"
+      CONFIDENCE_THRESHOLD: "0.85"
+      MAX_FILE_SIZE_MB: "10"
+      LOG_LEVEL: "INFO"
     volumes:
       - ./backend/fastapi-ai:/app
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
@@ -41,6 +49,7 @@ services:
       - "3000:3000"
     environment:
       BACKEND_GRAPHQL_API_URL: http://nestjs-api:3001/graphql
+      FASTAPI_AI_URL: http://fastapi-ai:8000
     depends_on:
       - nestjs-api
     volumes:
