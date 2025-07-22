@@ -4,12 +4,13 @@ from fastapi.responses import JSONResponse
 import uvicorn
 import os
 from dotenv import load_dotenv
+import logging
+from typing import List, Dict, Any
+import json
+from datetime import datetime
 import numpy as np
 from PIL import Image
 import io
-import logging
-from typing import Dict, Any, List
-import json
 
 # Load environment variables
 load_dotenv()
@@ -24,62 +25,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mock AI analysis function
-def analyze_glacier_image(image_data: bytes) -> Dict[str, Any]:
-    """
-    Mock glacier analysis function.
-    In production, this would use actual AI models.
-    """
-    try:
-        # Load image
-        image = Image.open(io.BytesIO(image_data))
-        width, height = image.size
-        
-        # Mock analysis results
-        analysis_result = {
-            "glacier_id": f"glacier_{hash(image_data) % 10000}",
-            "health_score": np.random.randint(60, 95),
-            "area_km2": round(np.random.uniform(10.5, 150.8), 2),
-            "ice_thickness_m": round(np.random.uniform(50, 300), 1),
-            "retreat_rate_m_year": round(np.random.uniform(5, 25), 2),
-            "temperature_trend": round(np.random.uniform(0.5, 2.5), 2),
-            "confidence": round(np.random.uniform(0.85, 0.98), 3),
-            "image_dimensions": {
-                "width": width,
-                "height": height
-            },
-            "analysis_timestamp": "2024-01-15T10:30:00Z",
-            "recommendations": [
-                "Continue monitoring ice thickness changes",
-                "Implement temperature sensors for real-time data",
-                "Schedule follow-up analysis in 6 months"
-            ],
-            "risk_factors": [
-                "Accelerated melting due to rising temperatures",
-                "Potential calving events in the terminus region",
-                "Seasonal variation in ice flow velocity"
-            ],
-            "metadata": {
-                "model_version": "glacier-ai-v2.1",
-                "processing_time_ms": np.random.randint(1500, 3000),
-                "image_quality": "high"
-            }
-        }
-        
-        return analysis_result
-        
-    except Exception as e:
-        logger.error(f"Error analyzing image: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.get("/")
 async def root():
@@ -96,139 +49,129 @@ async def health_check():
     """Detailed health check"""
     return {
         "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
         "python_version": "3.11",
         "services": {
             "ai_model": "ready",
             "image_processing": "ready",
             "database": "ready"
-        },
-        "timestamp": "2024-01-15T10:30:00Z"
+        }
     }
 
-@app.post("/analyze")
+@app.post("/analyze-glacier")
 async def analyze_glacier(file: UploadFile = File(...)):
     """
-    Analyze a glacier image and return AI-powered insights
+    Analyze glacier image using AI
     """
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
-        # Read image data
-        image_data = await file.read()
+        # Read and process image
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents))
         
-        # Validate file size (max 10MB)
-        if len(image_data) > 10 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File size too large (max 10MB)")
+        # Convert to RGB if necessary
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
         
-        # Perform analysis
-        analysis_result = analyze_glacier_image(image_data)
+        # Mock AI analysis (replace with actual AI model)
+        analysis_result = {
+            "glacier_id": f"glacier_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "filename": file.filename,
+            "analysis_date": datetime.now().isoformat(),
+            "metrics": {
+                "area_km2": round(np.random.uniform(10, 500), 2),
+                "volume_km3": round(np.random.uniform(1, 50), 2),
+                "thickness_m": round(np.random.uniform(50, 300), 1),
+                "velocity_m_year": round(np.random.uniform(10, 200), 1),
+                "temperature_c": round(np.random.uniform(-15, -2), 1),
+                "health_score": round(np.random.uniform(0.3, 0.9), 2)
+            },
+            "status": np.random.choice(["healthy", "warning", "critical"], p=[0.4, 0.4, 0.2]),
+            "trends": {
+                "area_change_percent": round(np.random.uniform(-5, 2), 2),
+                "volume_change_percent": round(np.random.uniform(-8, 1), 2),
+                "velocity_change_percent": round(np.random.uniform(-10, 5), 2)
+            },
+            "recommendations": [
+                "Continue monitoring ice thickness changes",
+                "Assess impact of temperature variations",
+                "Monitor calving front stability"
+            ],
+            "confidence": round(np.random.uniform(0.7, 0.95), 2)
+        }
         
         logger.info(f"Successfully analyzed glacier image: {file.filename}")
+        return analysis_result
         
-        return JSONResponse(content={
-            "success": True,
-            "filename": file.filename,
-            "analysis": analysis_result
-        })
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Error analyzing glacier: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.post("/batch-analyze")
 async def batch_analyze_glaciers(files: List[UploadFile] = File(...)):
     """
-    Analyze multiple glacier images in batch
+    Analyze multiple glacier images
     """
     try:
-        if len(files) > 10:
-            raise HTTPException(status_code=400, detail="Maximum 10 files allowed per batch")
-        
         results = []
         
         for file in files:
             if not file.content_type.startswith('image/'):
-                results.append({
-                    "filename": file.filename,
-                    "success": False,
-                    "error": "File must be an image"
-                })
                 continue
-            
-            try:
-                image_data = await file.read()
-                analysis_result = analyze_glacier_image(image_data)
                 
-                results.append({
-                    "filename": file.filename,
-                    "success": True,
-                    "analysis": analysis_result
-                })
-                
-            except Exception as e:
-                results.append({
-                    "filename": file.filename,
-                    "success": False,
-                    "error": str(e)
-                })
-        
-        return JSONResponse(content={
-            "success": True,
-            "batch_size": len(files),
-            "results": results
-        })
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Batch analysis error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Batch analysis failed")
-
-@app.get("/models")
-async def get_available_models():
-    """
-    Get information about available AI models
-    """
-    return {
-        "models": [
-            {
-                "name": "glacier-ai-v2.1",
-                "description": "Advanced glacier analysis model",
-                "version": "2.1.0",
-                "capabilities": [
-                    "Ice thickness estimation",
-                    "Health score calculation",
-                    "Retreat rate analysis",
-                    "Temperature trend detection"
-                ],
-                "accuracy": 0.94,
-                "status": "active"
-            },
-            {
-                "name": "glacier-classifier-v1.5",
-                "description": "Glacier type classification model",
-                "version": "1.5.0",
-                "capabilities": [
-                    "Glacier type identification",
-                    "Ice formation analysis",
-                    "Seasonal variation detection"
-                ],
-                "accuracy": 0.89,
-                "status": "active"
+            # Process each file (simplified for demo)
+            result = {
+                "filename": file.filename,
+                "glacier_id": f"glacier_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{len(results)}",
+                "status": np.random.choice(["healthy", "warning", "critical"]),
+                "health_score": round(np.random.uniform(0.3, 0.9), 2),
+                "area_km2": round(np.random.uniform(10, 500), 2)
             }
-        ]
+            results.append(result)
+        
+        return {
+            "batch_id": f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "processed_count": len(results),
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in batch analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Batch analysis failed: {str(e)}")
+
+@app.get("/models/status")
+async def get_model_status():
+    """Get AI model status"""
+    return {
+        "models": {
+            "glacier_segmentation": {
+                "status": "loaded",
+                "version": "1.2.0",
+                "accuracy": 0.94
+            },
+            "ice_thickness_estimation": {
+                "status": "loaded", 
+                "version": "1.1.0",
+                "accuracy": 0.87
+            },
+            "change_detection": {
+                "status": "loaded",
+                "version": "1.0.0", 
+                "accuracy": 0.91
+            }
+        },
+        "python_version": "3.11",
+        "last_updated": datetime.now().isoformat()
     }
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=port,
+        port=8000,
         reload=True,
         log_level="info"
     )

@@ -1,60 +1,120 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgis/postgis:16-3.5
-    environment:
-      POSTGRES_DB: glacier_scan
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/nestjs-api/src/database/migrations:/docker-entrypoint-initdb.d
-
-  nestjs-api:
-    build: ./backend/nestjs-api
-    ports:
-      - "3001:3001"
-    environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/glacier_scan
-      JWT_SECRET: your-jwt-secret-key
-      CLOUD_RUN_FASTAPI_URL: http://fastapi-ai:8000
-    depends_on:
-      - postgres
-      - fastapi-ai
-    volumes:
-      - ./backend/nestjs-api:/app
-      - /app/node_modules
-
-  fastapi-ai:
-    build: ./backend/fastapi-ai
-    ports:
-      - "8000:8000"
-    environment:
-      PORT: 8000
-      DEBUG: "true"
-      MODEL_VERSION: "2.1.0"
-      CONFIDENCE_THRESHOLD: "0.85"
-      MAX_FILE_SIZE_MB: "10"
-      LOG_LEVEL: "INFO"
-    volumes:
-      - ./backend/fastapi-ai:/app
-    restart: unless-stopped
-
+  # Frontend - Next.js Application
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      BACKEND_GRAPHQL_API_URL: http://nestjs-api:3001/graphql
-      FASTAPI_AI_URL: http://fastapi-ai:8000
-    depends_on:
-      - nestjs-api
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_AI_API_URL=http://localhost:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+      - ai-service
+    networks:
+      - glacier-network
+
+  # Backend - NestJS API
+  backend:
+    build:
+      context: ./backend/nestjs-api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BLOB_READ_WRITE_TOKEN=${BLOB_READ_WRITE_TOKEN}
+    volumes:
+      - ./backend/nestjs-api:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - glacier-network
+
+  # AI Service - FastAPI with Python 3.11
+  ai-service:
+    build:
+      context: ./backend/fastapi-ai
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_PATH=/app/models
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - ./backend/fastapi-ai:/app
+      - glacier-models:/app/models
+      - glacier-uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - glacier-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=glacier_scan
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - glacier-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - glacier-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+      - ai-service
+    networks:
+      - glacier-network
 
 volumes:
-  postgres_data:
+  postgres-data:
+  redis-data:
+  glacier-models:
+  glacier-uploads:
+
+networks:
+  glacier-network:
+    driver: bridge
